@@ -63,10 +63,12 @@ download() {
   local ver="${XRAYSCOPE_VERSION:-latest}" a url tmp
   a="$(arch)"
   if [ "$ver" = latest ]; then
-    url="https://github.com/$REPO/releases/latest/download/xrayscope-linux-$a.tar.gz"
-  else
-    url="https://github.com/$REPO/releases/download/$ver/xrayscope-linux-$a.tar.gz"
+    # GitHub's "latest" skips pre-releases, so ask for the newest release of any kind
+    ver="$(curl -fsSL "https://api.github.com/repos/$REPO/releases?per_page=1" | grep -m1 '"tag_name"' | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')" || true
+    [ -n "$ver" ] || { red "Could not find a release of $REPO."; exit 1; }
+    info "Latest release: $ver"
   fi
+  url="https://github.com/$REPO/releases/download/$ver/xrayscope-linux-$a.tar.gz"
   tmp="$(mktemp -d)"
   info "Downloading $url"
   curl -fsSL "$url" -o "$tmp/x.tgz" || { red "Download failed. Check XRAYSCOPE_REPO / XRAYSCOPE_VERSION."; exit 1; }
