@@ -241,6 +241,28 @@ func (s *Server) handleUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// handleUserInfo is the cheap user lookup used by tabs that load their own data.
+func (s *Server) handleUserInfo(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(r)
+	if !ok {
+		fail(w, http.StatusBadRequest, "invalid user id")
+		return
+	}
+	u, err := s.app.Store.UserByID(r.Context(), id)
+	if errors.Is(err, sql.ErrNoRows) {
+		fail(w, http.StatusNotFound, "user not found")
+		return
+	} else if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	resp := map[string]any{"user": u, "online": nil}
+	if o, ok := s.app.Live.OnlineUser(id, s.app.Env().OnlineWin); ok {
+		resp["online"] = o
+	}
+	writeJSON(w, http.StatusOK, resp)
+}
+
 func (s *Server) handleTimeline(w http.ResponseWriter, r *http.Request) {
 	id, ok := pathID(r)
 	if !ok {

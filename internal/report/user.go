@@ -99,7 +99,7 @@ func (e *Env) User(ctx ctxT, userID int64, rg Range) (*UserReport, error) {
 	if err != nil {
 		return nil, err
 	}
-	r := &UserReport{User: u, Range: rg, Favorites: map[string][]analytics.TimeStat{}}
+	r := &UserReport{User: u, Range: rg, Favorites: map[string][]analytics.TimeStat{}, IPs: []IPInfo{}, Devices: []DeviceSummary{}, Concurrency: Concurrency{Overlaps: []OverlapView{}}}
 	if e.Live != nil {
 		if o, ok := e.Live.OnlineUser(userID, e.OnlineWin); ok {
 			r.Online = &o
@@ -253,13 +253,17 @@ func (e *Env) fillIPs(ctx ctxT, r *UserReport, rows []store.ActRow, rg Range) er
 			continue
 		}
 		ip := ips[id]
+		devs := guess[id]
+		if devs == nil {
+			devs = []analytics.Device{}
+		}
 		info := IPInfo{
 			IP: ip.IP, Country: ip.Country, ASN: ip.ASN, Org: ip.Org,
 			First: mins[0] * 60, Last: mins[len(mins)-1]*60 + 59,
 			Minutes:  int64(len(mins)),
 			Sessions: len(analytics.Sessions(mins, e.GapMin)),
 			Online:   online[ip.IP],
-			Devices:  guess[id],
+			Devices:  devs,
 		}
 		for _, d := range info.Devices {
 			k := devKey{d.OS, d.Vendor, d.Browser}

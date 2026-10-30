@@ -15,6 +15,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -34,6 +35,7 @@ type Server struct {
 	app    *app.App
 	log    *slog.Logger
 	static fs.FS
+	dev    bool
 	etags  map[string]string
 
 	cacheMu sync.Mutex
@@ -51,7 +53,11 @@ func New(a *app.App) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := &Server{app: a, log: a.Log, static: sub, etags: map[string]string{}, cache: map[string]cacheEntry{}}
+	devDir := os.Getenv("XRAYSCOPE_WEB_DIR") // development: serve the UI from disk
+	if devDir != "" {
+		sub = os.DirFS(devDir)
+	}
+	s := &Server{app: a, log: a.Log, static: sub, dev: devDir != "", etags: map[string]string{}, cache: map[string]cacheEntry{}}
 	_ = fs.WalkDir(sub, ".", func(p string, d fs.DirEntry, err error) error {
 		if err == nil && !d.IsDir() {
 			if b, err := fs.ReadFile(sub, p); err == nil {
@@ -136,6 +142,7 @@ func (s *Server) routes(mux *http.ServeMux) {
 	authed("GET /api/overview", s.handleOverview)
 	authed("GET /api/users", s.handleUsers)
 	authed("GET /api/users/{id}", s.handleUser)
+	authed("GET /api/users/{id}/info", s.handleUserInfo)
 	authed("GET /api/users/{id}/timeline", s.handleTimeline)
 	authed("GET /api/users/{id}/sites", s.handleSites)
 	authed("GET /api/users/{id}/export", s.handleExport)
@@ -406,6 +413,11 @@ func (s *Server) handleStatic(w http.ResponseWriter, r *http.Request) {
 	et := s.etags[p]
 	w.Header().Set("ETag", et)
 	w.Header().Set("Cache-Control", "no-cache")
+	if s.dev {
+		et = ""
+		w.Header().Del("ETag")
+		w.Header().Set("Cache-Control", "no-store")
+	}
 	if r.Header.Get("If-None-Match") == et && et != "" {
 		w.WriteHeader(http.StatusNotModified)
 		return

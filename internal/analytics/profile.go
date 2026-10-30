@@ -128,6 +128,7 @@ type TimeStat struct {
 // minutes across services so parallel use is not double counted. Per-user
 // results are summed when rows from several users are given.
 func TimeSpent(rows []store.SvcRow, services map[int64]store.Service) (byCategory, byService []TimeStat) {
+	byCategory, byService = []TimeStat{}, []TimeStat{}
 	type ck struct {
 		user int64
 		cat  string

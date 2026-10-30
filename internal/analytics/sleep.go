@@ -55,7 +55,7 @@ type SleepSummary struct {
 // traffic. Nights are evaluated for each morning in [fromDay, toDay] (local
 // day indexes).
 func AnalyzeSleep(pres, inter []int64, fromDay, toDay int64, loc *time.Location, opt SleepOptions) SleepSummary {
-	var sum SleepSummary
+	sum := SleepSummary{Days: []SleepDay{}}
 	var starts, durs []int64
 	connected := 0
 	for d := fromDay; d <= toDay; d++ {

@@ -9,3 +9,6 @@
 config.json
 .vscode/
 .idea/
+
+/.demo/
+/.i18n-check.mjs

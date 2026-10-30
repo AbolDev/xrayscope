@@ -67,7 +67,7 @@ type CountryStat struct {
 
 // Overview computes the dashboard for a range.
 func (e *Env) Overview(ctx ctxT, rg Range) (*Overview, error) {
-	o := &Overview{Range: rg}
+	o := &Overview{Range: rg, Activity: []ActivityPoint{}, TopTraffic: []UserTraffic{}, TopActive: []UserActive{}, Countries: []CountryStat{}, Online: []live.Online{}}
 	users, err := e.Store.Users(ctx)
 	if err != nil {
 		return nil, err

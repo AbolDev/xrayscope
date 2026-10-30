@@ -64,7 +64,7 @@ func (e *Env) Timeline(ctx ctxT, userID int64, date string) (*Timeline, error) {
 	startMin := analytics.DayStart(e.Loc, day)
 	endMin := analytics.DayStart(e.Loc, day+1)
 	rg := Range{From: startMin * 60, To: endMin * 60}
-	t := &Timeline{User: u, Date: date, Start: rg.From, Minutes: int(endMin - startMin)}
+	t := &Timeline{User: u, Date: date, Start: rg.From, Minutes: int(endMin - startMin), Sessions: []SessionView{}, Blocks: []HourBlock{}}
 
 	rows, err := e.Store.Act(ctx, userID, rg.fromHour(), rg.toHour())
 	if err != nil {

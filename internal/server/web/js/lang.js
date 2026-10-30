@@ -1,0 +1,248 @@
+// UI strings. Placeholders look like {name}.
+export const dict = { en: {}, fa: {} };
+
+const en = {
+  // general
+  apply: 'Apply', cancel: 'Cancel', confirm: 'Confirm', close: 'Close', create: 'Create', save: 'Save', delete: 'Delete', search: 'Search',
+  back: 'Back', next: 'Next', prev: 'Previous', later: 'Later', restart: 'Restart', restarting: 'Restarting…', download: 'Download', upload: 'Upload',
+  requests: 'requests', see_all: 'See all', today: 'Today', from: 'From', to: 'To', note: 'Note', theme: 'Theme', logout: 'Log out',
+  on: 'on', off: 'off', online: 'Online', offline: 'Offline', disabled: 'Disabled', expired: 'Expired', expires: 'Expires', unlimited: 'Unlimited',
+  max: 'max', conc: 'simultaneous', of: 'of', user: 'User', username: 'Username', password: 'Password', login: 'Sign in', 'login.sub': 'Traffic and behaviour analytics for your VPN panel',
+  no_data: 'No data for this period', no_traffic: 'No traffic recorded in this period', no_events: 'No events yet', confidence: 'Confidence {p}%',
+  foot: 'Built for 3x-ui · open source', user_time: 'user time', delete_user: 'Delete user data', delete_user_text: 'All collected data of {name} will be removed permanently. Continue?',
+  n_of: '{a} of {b}', n_users: '{n} users', n_accounts: '{n} accounts', showing: 'Showing {a}–{b} of {c}', geo_hint: 'Configure a GeoIP database to see countries.',
+  'u.min': 'min', 'u.hour': 'h', 'u.day': 'd', 'u.and': 'and',
+  'ago.now': 'just now', 'ago.min': '{n} min ago', 'ago.hour': '{n} h ago', 'ago.day': '{n} d ago',
+  'err.network': 'Cannot reach the server', 'err.login_required': 'Please sign in', 'err.range': 'Invalid date range',
+
+  // nav and ranges
+  'nav.overview': 'Overview', 'nav.users': 'Users', 'nav.online': 'Online now', 'nav.ips': 'IP lookup', 'nav.events': 'Alerts & events',
+  'nav.nodes': 'Nodes', 'nav.system': 'System & backups', 'nav.settings': 'Settings',
+  'range.today': 'Today', 'range.24h': '24h', 'range.7d': '7d', 'range.30d': '30d', 'range.90d': '90d', 'range.365d': '1y', 'range.custom': 'Custom',
+
+  // overview
+  'kpi.online': 'Online now', 'kpi.ips_now': '{n} connections', 'kpi.active_users': 'Active users', 'kpi.of_total': 'of {n}',
+  'kpi.download': 'Download', 'kpi.upload': 'Upload',
+  'chart.traffic': 'Upload & download', 'chart.activity': 'Activity', 'chart.activity_hint': 'users online per period', 'chart.users_active': 'Users online',
+  'chart.categories': 'Where the time goes', 'chart.categories_hint': 'active user-time by category', 'chart.top_services': 'Most used services',
+  'chart.heat': 'Activity by weekday and hour', 'chart.heat_hint': 'interactive minutes',
+  'top.traffic': 'Top users by traffic', 'top.active': 'Most active users', 'top.countries': 'Countries', online_now: 'Online now',
+  online_hint: 'Users with traffic in the last few minutes. Refreshes automatically.', online_n: '{n} connected', nobody_online: 'Nobody is online right now.',
+  over_limit: 'Over IP limit',
+
+  // users
+  search_users: 'Search users…',
+  'filter.all': 'All', 'filter.online': 'Online', 'filter.over': 'Over IP limit', 'filter.inactive': 'Inactive', 'filter.disabled': 'Disabled',
+  'col.user': 'User', 'col.last_seen': 'Last seen', 'col.traffic': 'Traffic', 'col.active': 'Active time', 'col.interactive': 'Interactive', 'col.ips': 'IPs',
+  'col.top': 'Top interest', 'col.quota': 'Quota', 'col.expiry': 'Expires', 'col.time': 'Time', 'col.type': 'Type', 'col.details': 'Details',
+  'col.status': 'Status', 'col.file': 'File', 'col.size': 'Size', 'col.created': 'Created', 'col.site': 'Site', 'col.category': 'Category',
+  'col.service': 'Service', 'col.requests': 'Requests', 'col.first': 'First seen', 'col.last': 'Last seen', 'col.ip': 'IP', 'col.country': 'Country',
+  'col.network': 'Network', 'col.sessions': 'Sessions', 'col.device': 'Device guess', 'col.start': 'Start', 'col.end': 'End', 'col.duration': 'Duration',
+  'col.ips_at_once': 'IPs at once', 'col.date': 'Night', 'col.from': 'Fell asleep', 'col.to': 'Woke up',
+  last_seen_at: 'Last seen {t}', first_seen_at: 'tracked since {d}',
+
+  // user page
+  'tab.summary': 'Summary', 'tab.timeline': 'Day timeline', 'tab.sites': 'Sites', 'tab.network': 'IPs & devices', 'tab.sleep': 'Sleep pattern',
+  'csv.daily': 'daily',
+  'us.online_time': 'Time online', 'us.active_days': '{n} active days', 'us.interactive': 'Interactive use', 'us.share': '{p}% of online time',
+  'us.sessions': 'Sessions', 'us.avg_session': 'avg {d}, longest {l}', 'us.time_by_cat': 'Time by category', 'us.total': 'total',
+  'us.interests': 'Interests', 'us.interests_hint': 'most used services per area', 'us.daily': 'Daily activity', 'us.background': 'Background only',
+  'us.hourly': 'Minutes active per hour', 'us.heat_hint': 'all traffic', 'us.top_sites': 'Top sites',
+  'sites.search': 'Search domain or service…', 'sites.all_cats': 'All categories',
+  'tl.minutes': 'Minute by minute', 'tl.online': 'online', 'tl.sessions': 'Connections by IP', 'tl.sessions_hint': 'one row per client IP',
+  'tl.multi_ip': 'This user connected from {n} different IPs on this day.', 'tl.none': 'No connection on this day.',
+  'tl.visited': 'What was visited', 'tl.visited_hint': 'grouped by hour (UTC-aligned slots)',
+  'strip.idle': 'Offline', 'strip.bg': 'Background traffic only', 'strip.inter': 'Interactive use',
+
+  // network
+  'net.ips': 'Client IPs', 'net.in_range': 'in this period', 'net.max_conc': 'Max simultaneous IPs', 'net.limit': 'panel limit: {n}', 'net.no_limit': 'no limit set',
+  'net.devices': 'Device guesses', 'net.devices_hint': 'from traffic fingerprints', 'net.overlaps': 'Overlapping periods', 'net.overlaps_hint': 'several IPs at once',
+  'net.ip_history': 'IP history', 'net.ip_hint': 'every address this user connected from',
+  'net.device_guess': 'Probable devices', 'net.device_guess_hint': 'guessed from background domains (updates, connectivity checks); not exact',
+  'net.no_devices': 'Not enough fingerprint traffic to guess the device.',
+  'net.overlap_list': 'Simultaneous connections', 'net.over_limit': 'above the panel limit', 'net.no_overlaps': 'This user never used several IPs at the same time.',
+
+  // sleep
+  'sl.bedtime': 'Typical bedtime', 'sl.wake': 'Typical wake-up', 'sl.duration': 'Average sleep', 'sl.confidence': 'Confidence',
+  'sl.std': '± {m} min variation', 'sl.nights': '{n} nights analysed', 'sl.window': 'last {n} days', 'sl.connected_share': '{p}% of nights stayed connected',
+  'sl.explain': 'Sleep is estimated as the longest quiet stretch with no interactive traffic around night time. Background traffic (updates, sync, push) is ignored, so a phone that keeps the VPN on while its owner sleeps is still detected — those nights are shown in amber.',
+  'sl.method': 'The estimate needs at least a few days of regular interactive use.', 'sl.not_enough': 'Not enough data yet: the sleep pattern needs several days of regular use (looked at the last {n} days).',
+  'sl.nightly': 'Night by night', 'sl.nightly_hint': 'axis runs from noon to noon', 'sl.table': 'Details',
+  'sl.kind': 'Connection', 'sl.kind.connected': 'Connected while inactive', 'sl.kind.offline': 'No traffic at all', 'sl.kind.atypical': 'unusual time',
+  'sl.bg_minutes': 'Background minutes', 'sl.awakenings': 'Brief wake-ups',
+
+  // IP lookup
+  ip_search_ph: 'Enter an IP address', ip_search_hint: 'Find out who connected from an address.', ip_none: 'This address was not seen in the selected period.',
+  ip_shared: 'Several users share this address ({n}) — a household, office or mobile carrier gateway.',
+
+  // events
+  'ev.max_ips': 'Too many IPs', 'ev.new_ip': 'New IP', 'ev.new_country': 'New country', 'ev.traffic_spike': 'Traffic spike', 'ev.quota': 'Quota',
+  'ev.expiry': 'Expiry', 'ev.node_offline': 'Node offline', 'ev.node_online': 'Node online', 'ev.log_stale': 'Log stalled', 'ev.backup': 'Backup',
+
+  // nodes
+  'node.add': 'Add node', 'node.hint': 'Nodes ship their access log and traffic to this server.', 'node.none': 'No nodes connected yet.', 'node.name': 'Name',
+  'node.name_help': 'A short label such as de-1 or fr-2.', 'node.never': 'never connected', 'node.ip': 'Address', 'node.version': 'Version', 'node.panel': 'Panel', 'node.lines': 'Lines',
+  'node.delete': 'Remove node', 'node.delete_text': 'Remove {name}? Its collected data is kept.', 'node.created': 'Node created',
+  'node.token_once': 'Copy the token now. It is shown only once.', 'node.token': 'Token', 'node.install': 'Install on the node', 'node.manual': 'Or configure an installed binary',
+  'node.proxy_help': 'If the node cannot reach this server directly, add "server_proxy": "socks5://host:port" to its config.json.',
+
+  // system
+  'sys.collection': 'Log collection', 'sys.log.ok': 'Collecting', 'sys.log.waiting': 'Waiting for the log', 'sys.log.disabled': 'Access log is off', 'sys.log.missing': 'Log not found', 'sys.log.no_panel': 'No panel configured',
+  'sys.msg.disabled': 'Access logging is turned off in the panel, so no per-user data can be collected yet.', 'sys.msg.missing': 'The access log file does not exist yet or the panel database cannot be read.', 'sys.msg.no_panel': 'No panel is configured. Set panel.type and log_path in the configuration file.',
+  'sys.last_line': 'last line {t}', 'sys.no_lines': 'no lines received yet', 'sys.lines': '{n} lines read', 'sys.enable_log': 'In your 3x-ui panel open Xray Configs and set the log section like this, then restart Xray:',
+  'sys.panel': 'Panel connection', 'sys.panel_ok': 'Connected', 'sys.panel_err': 'Error', 'sys.panel_none': 'Not used', 'sys.panel_last': 'last successful read {t}',
+  'sys.db_size': 'Database size', 'sys.rows': '{n} detail rows', 'sys.users': 'Users tracked', 'sys.ips_domains': '{a} IPs · {b} sites', 'sys.uptime': 'Uptime',
+  'sys.data_span': 'Data collected between',
+  'bk.title': 'Backups', 'bk.count': '{n} stored', 'bk.create': 'Back up now', 'bk.upload': 'Upload & restore', 'bk.hint': 'Backups are consistent snapshots of the whole database.',
+  'bk.created': 'Backup created', 'bk.none': 'No backups yet.', 'bk.restore': 'Restore', 'bk.restore_text': 'The database will be replaced by this backup after a restart. The current database is kept in the backups folder. Continue?',
+  'bk.pending': 'A restore is waiting for a restart.', 'bk.staged': 'Restore prepared', 'bk.staged_text': 'Restart XrayScope to finish the restore. The service manager starts it again automatically.',
+
+  // settings
+  'set.general': 'General', 'set.tz': 'Display time zone', 'set.tz_help': 'Used for days, charts and sleep analysis. "Local" is the server time zone.',
+  'set.server_lang': 'Language of Telegram messages', 'set.server_lang_help': 'The panel itself switches language from the top bar.',
+  'set.gap': 'Session gap (minutes)', 'set.gap_help': 'Silence longer than this ends a session.', 'set.online_window': 'Online window (minutes)', 'set.online_window_help': 'A user counts as online if seen within this time.',
+  'set.telegram': 'Telegram bot', 'set.tg_enabled': 'Send notifications to Telegram', 'set.tg_token': 'Bot token', 'set.tg_token_help': 'Create a bot with @BotFather.', 'set.token_saved': 'saved',
+  'set.tg_chats': 'Chat IDs', 'set.tg_chats_help': 'Comma separated. Only these chats may use bot commands.', 'set.tg_proxy': 'Proxy', 'set.tg_proxy_help': 'http://, https:// or socks5:// URL. Empty uses the global proxy from the config file.',
+  'set.tg_api': 'Bot API server', 'set.tg_api_help': 'Optional self-hosted relay or Bot API server.', 'set.tg_commands': 'Answer bot commands (/online, /user, /top, /status)',
+  'set.tg_test': 'Save & send test', 'set.tg_ok': 'Connected to @{bot}', 'set.tg_clear': 'Remove token', 'set.tg_clear_hint': 'The token will be removed when you save.',
+  'set.alerts': 'Alerts', 'set.alerts_intro': 'Alerts are always written to the event log and also sent to Telegram when it is enabled.', 'set.cooldown': 'repeat after (min)',
+  'set.al.max_ips': 'Too many simultaneous IPs', 'set.al.max_ips_help': 'Value 0 uses the IP limit configured per account in the panel.', 'set.al.max_ips.unit': 'allowed IPs',
+  'set.al.new_ip': 'New IP address', 'set.al.new_ip_help': 'A known user connects from an address never seen before.',
+  'set.al.new_country': 'New country', 'set.al.new_country_help': 'Needs a GeoIP database.',
+  'set.al.spike': 'Traffic spike', 'set.al.spike_help': 'One user transfers a lot within an hour.', 'set.al.spike.unit': 'MB per hour',
+  'set.al.quota': 'Quota almost used', 'set.al.quota_help': 'Warns when an account approaches its data limit.', 'set.al.quota.unit': '% used',
+  'set.al.expiry': 'Subscription expiring', 'set.al.expiry_help': 'Warns before an account expires.', 'set.al.expiry.unit': 'days before',
+  'set.al.node': 'Node offline', 'set.al.node_help': 'A node stopped reporting.', 'set.al.node.unit': 'minutes silent',
+  'set.al.log': 'Log collection stalled', 'set.al.log_help': 'No new access-log lines for a while.', 'set.al.log.unit': 'minutes',
+  'set.al.digest': 'Daily summary', 'set.al.digest_help': 'A short report sent once a day.', 'set.al.digest.unit': 'hour (0-23)',
+  'set.min_overlap': 'Overlap needed for the IP alert (minutes)', 'set.min_overlap_help': 'Avoids false alarms when a phone switches between Wi-Fi and mobile data.',
+  'set.rules': 'Custom classification rules', 'set.rules_intro': 'Teach XrayScope about sites it does not know. A rule matches the domain and all its subdomains.',
+  'set.rule_domain': 'Domain', 'set.rule_cat': 'Category', 'set.rule_service': 'Service name', 'set.rule_add': 'Add rule', 'set.reclassify': 'Apply to existing data',
+  'set.reclassify_help': 'Re-labels sites already stored. Time-spent statistics keep the labels they were recorded with.', 'set.reclassified': '{n} sites re-labelled',
+  'set.backup': 'Backups & retention', 'set.bk_enabled': 'Create backups automatically', 'set.bk_interval': 'Every (hours)', 'set.bk_keep': 'Keep the newest',
+  'set.bk_telegram': 'Send each backup to Telegram (up to 45 MB)', 'set.rt_visits': 'Keep hourly site detail for (days)', 'set.rt_visits_help': 'Older site records are merged into daily rows. Nothing is deleted.',
+  'set.rt_traffic': 'Keep 5-minute traffic for (days)', 'set.rt_traffic_help': 'Hourly traffic is kept forever.',
+  'set.account': 'Administrator account', 'set.old_pw': 'Current password', 'set.new_pw': 'New password', 'set.new_pw_help': 'At least 8 characters.', 'set.change_pw': 'Change password',
+  'set.pw_changed': 'Password changed', 'set.saved': 'Settings saved',
+};
+
+const fa = {
+  apply: 'اعمال', cancel: 'انصراف', confirm: 'تأیید', close: 'بستن', create: 'ساخت', save: 'ذخیره', delete: 'حذف', search: 'جستجو',
+  back: 'بازگشت', next: 'بعدی', prev: 'قبلی', later: 'بعداً', restart: 'راه‌اندازی مجدد', restarting: 'در حال راه‌اندازی مجدد…', download: 'دانلود', upload: 'آپلود',
+  requests: 'درخواست', see_all: 'مشاهده همه', today: 'امروز', from: 'از', to: 'تا', note: 'یادداشت', theme: 'تم', logout: 'خروج',
+  on: 'روشن', off: 'خاموش', online: 'آنلاین', offline: 'آفلاین', disabled: 'غیرفعال', expired: 'منقضی شده', expires: 'انقضا', unlimited: 'نامحدود',
+  max: 'حداکثر', conc: 'هم‌زمان', of: 'از', user: 'کاربر', username: 'نام کاربری', password: 'گذرواژه', login: 'ورود', 'login.sub': 'تحلیل ترافیک و رفتار کاربران پنل VPN شما',
+  no_data: 'برای این بازه داده‌ای نیست', no_traffic: 'در این بازه ترافیکی ثبت نشده', no_events: 'هنوز رویدادی ثبت نشده', confidence: 'اطمینان {p}٪',
+  foot: 'ساخته‌شده برای 3x-ui · متن‌باز', user_time: 'زمان کاربران', delete_user: 'حذف اطلاعات کاربر', delete_user_text: 'تمام اطلاعات جمع‌آوری‌شده‌ی {name} برای همیشه پاک می‌شود. ادامه می‌دهید؟',
+  n_of: '{a} از {b}', n_users: '{n} کاربر', n_accounts: '{n} حساب', showing: 'نمایش {a}–{b} از {c}', geo_hint: 'برای دیدن کشورها یک پایگاه GeoIP تنظیم کنید.',
+  'u.min': 'دقیقه', 'u.hour': 'ساعت', 'u.day': 'روز', 'u.and': 'و',
+  'ago.now': 'هم‌اکنون', 'ago.min': '{n} دقیقه پیش', 'ago.hour': '{n} ساعت پیش', 'ago.day': '{n} روز پیش',
+  'err.network': 'اتصال به سرور برقرار نشد', 'err.login_required': 'لطفاً وارد شوید', 'err.range': 'بازه زمانی نامعتبر است',
+
+  'nav.overview': 'نمای کلی', 'nav.users': 'کاربران', 'nav.online': 'آنلاین‌ها', 'nav.ips': 'جستجوی آی‌پی', 'nav.events': 'هشدارها و رویدادها',
+  'nav.nodes': 'نودها', 'nav.system': 'سیستم و پشتیبان‌گیری', 'nav.settings': 'تنظیمات',
+  'range.today': 'امروز', 'range.24h': '۲۴ ساعت', 'range.7d': '۷ روز', 'range.30d': '۳۰ روز', 'range.90d': '۹۰ روز', 'range.365d': '۱ سال', 'range.custom': 'دلخواه',
+
+  'kpi.online': 'آنلاین اکنون', 'kpi.ips_now': '{n} اتصال', 'kpi.active_users': 'کاربران فعال', 'kpi.of_total': 'از {n}',
+  'kpi.download': 'دانلود', 'kpi.upload': 'آپلود',
+  'chart.traffic': 'آپلود و دانلود', 'chart.activity': 'فعالیت', 'chart.activity_hint': 'تعداد کاربران آنلاین در هر بازه', 'chart.users_active': 'کاربران آنلاین',
+  'chart.categories': 'زمان صرف‌شده کجاست؟', 'chart.categories_hint': 'زمان فعال کاربران به تفکیک دسته', 'chart.top_services': 'پراستفاده‌ترین سرویس‌ها',
+  'chart.heat': 'فعالیت بر اساس روز هفته و ساعت', 'chart.heat_hint': 'دقیقه‌های استفاده‌ی فعال',
+  'top.traffic': 'پرمصرف‌ترین کاربران', 'top.active': 'فعال‌ترین کاربران', 'top.countries': 'کشورها', online_now: 'آنلاین‌های اکنون',
+  online_hint: 'کاربرانی که در چند دقیقه‌ی اخیر ترافیک داشته‌اند. به‌صورت خودکار به‌روز می‌شود.', online_n: '{n} اتصال فعال', nobody_online: 'اکنون کسی آنلاین نیست.',
+  over_limit: 'بیش از سقف آی‌پی',
+
+  search_users: 'جستجوی کاربر…',
+  'filter.all': 'همه', 'filter.online': 'آنلاین', 'filter.over': 'بیش از سقف آی‌پی', 'filter.inactive': 'بی‌فعالیت', 'filter.disabled': 'غیرفعال',
+  'col.user': 'کاربر', 'col.last_seen': 'آخرین اتصال', 'col.traffic': 'ترافیک', 'col.active': 'زمان فعالیت', 'col.interactive': 'استفاده‌ی فعال', 'col.ips': 'آی‌پی‌ها',
+  'col.top': 'علاقه‌ی اصلی', 'col.quota': 'حجم', 'col.expiry': 'انقضا', 'col.time': 'زمان', 'col.type': 'نوع', 'col.details': 'جزئیات',
+  'col.status': 'وضعیت', 'col.file': 'فایل', 'col.size': 'اندازه', 'col.created': 'ساخته‌شده', 'col.site': 'سایت', 'col.category': 'دسته',
+  'col.service': 'سرویس', 'col.requests': 'درخواست‌ها', 'col.first': 'اولین بار', 'col.last': 'آخرین بار', 'col.ip': 'آی‌پی', 'col.country': 'کشور',
+  'col.network': 'شبکه', 'col.sessions': 'نشست‌ها', 'col.device': 'حدس دستگاه', 'col.start': 'شروع', 'col.end': 'پایان', 'col.duration': 'مدت',
+  'col.ips_at_once': 'آی‌پی هم‌زمان', 'col.date': 'شب', 'col.from': 'خواب رفت', 'col.to': 'بیدار شد',
+  last_seen_at: 'آخرین اتصال: {t}', first_seen_at: 'از {d} ردیابی می‌شود',
+
+  'tab.summary': 'خلاصه', 'tab.timeline': 'خط زمانی روز', 'tab.sites': 'سایت‌ها', 'tab.network': 'آی‌پی‌ها و دستگاه‌ها', 'tab.sleep': 'الگوی خواب',
+  'csv.daily': 'روزانه',
+  'us.online_time': 'مدت آنلاین بودن', 'us.active_days': '{n} روز فعال', 'us.interactive': 'استفاده‌ی فعال', 'us.share': '{p}٪ از زمان آنلاین',
+  'us.sessions': 'نشست‌ها', 'us.avg_session': 'میانگین {d}، طولانی‌ترین {l}', 'us.time_by_cat': 'زمان به تفکیک دسته', 'us.total': 'مجموع',
+  'us.interests': 'علایق', 'us.interests_hint': 'پراستفاده‌ترین سرویس‌ها در هر حوزه', 'us.daily': 'فعالیت روزانه', 'us.background': 'فقط پس‌زمینه',
+  'us.hourly': 'دقیقه‌های فعال در هر ساعت', 'us.heat_hint': 'کل ترافیک', 'us.top_sites': 'پربازدیدترین سایت‌ها',
+  'sites.search': 'جستجوی دامنه یا سرویس…', 'sites.all_cats': 'همه‌ی دسته‌ها',
+  'tl.minutes': 'دقیقه به دقیقه', 'tl.online': 'آنلاین', 'tl.sessions': 'اتصال‌ها به تفکیک آی‌پی', 'tl.sessions_hint': 'هر ردیف یک آی‌پی کلاینت',
+  'tl.multi_ip': 'این کاربر در این روز از {n} آی‌پی متفاوت متصل شده است.', 'tl.none': 'در این روز اتصالی ثبت نشده.',
+  'tl.visited': 'چه چیزهایی بازدید شد', 'tl.visited_hint': 'گروه‌بندی ساعتی (بازه‌های هم‌تراز با UTC)',
+  'strip.idle': 'آفلاین', 'strip.bg': 'فقط ترافیک پس‌زمینه', 'strip.inter': 'استفاده‌ی فعال',
+
+  'net.ips': 'آی‌پی‌های کلاینت', 'net.in_range': 'در این بازه', 'net.max_conc': 'بیشترین آی‌پی هم‌زمان', 'net.limit': 'سقف پنل: {n}', 'net.no_limit': 'سقفی تعیین نشده',
+  'net.devices': 'حدس دستگاه‌ها', 'net.devices_hint': 'از اثر انگشت ترافیک', 'net.overlaps': 'بازه‌های هم‌پوشان', 'net.overlaps_hint': 'چند آی‌پی هم‌زمان',
+  'net.ip_history': 'تاریخچه‌ی آی‌پی‌ها', 'net.ip_hint': 'همه‌ی آدرس‌هایی که این کاربر از آن‌ها وصل شده',
+  'net.device_guess': 'دستگاه‌های محتمل', 'net.device_guess_hint': 'حدس بر پایه‌ی دامنه‌های پس‌زمینه (به‌روزرسانی، بررسی اتصال)؛ دقیق نیست',
+  'net.no_devices': 'ترافیک کافی برای حدس زدن دستگاه وجود ندارد.',
+  'net.overlap_list': 'اتصال‌های هم‌زمان', 'net.over_limit': 'بیش از سقف پنل', 'net.no_overlaps': 'این کاربر هیچ‌وقت هم‌زمان با چند آی‌پی وصل نبوده.',
+
+  'sl.bedtime': 'ساعت معمول خواب', 'sl.wake': 'ساعت معمول بیداری', 'sl.duration': 'میانگین خواب', 'sl.confidence': 'اطمینان',
+  'sl.std': '± {m} دقیقه تغییرپذیری', 'sl.nights': '{n} شب بررسی شد', 'sl.window': '{n} روز اخیر', 'sl.connected_share': '{p}٪ از شب‌ها متصل ماند',
+  'sl.explain': 'خواب به‌صورت طولانی‌ترین بازه‌ی بی‌فعالیتِ شبانه (بدون ترافیک تعاملی) تخمین زده می‌شود. ترافیک پس‌زمینه (به‌روزرسانی، همگام‌سازی، نوتیفیکیشن) نادیده گرفته می‌شود؛ بنابراین گوشی‌ای که هنگام خواب صاحبش هم به VPN وصل مانده تشخیص داده می‌شود و آن شب‌ها به رنگ زرد نمایش داده می‌شوند.',
+  'sl.method': 'برای تخمین، چند روز استفاده‌ی منظم لازم است.', 'sl.not_enough': 'هنوز داده‌ی کافی نیست: الگوی خواب به چند روز استفاده‌ی منظم نیاز دارد ({n} روز اخیر بررسی شد).',
+  'sl.nightly': 'شب به شب', 'sl.nightly_hint': 'محور از ظهر تا ظهر است', 'sl.table': 'جزئیات',
+  'sl.kind': 'اتصال', 'sl.kind.connected': 'هنگام بی‌فعالیتی متصل بود', 'sl.kind.offline': 'هیچ ترافیکی نبود', 'sl.kind.atypical': 'زمان غیرمعمول',
+  'sl.bg_minutes': 'دقیقه‌های پس‌زمینه', 'sl.awakenings': 'بیداری‌های کوتاه',
+
+  ip_search_ph: 'یک آدرس آی‌پی وارد کنید', ip_search_hint: 'ببینید چه کسی از یک آدرس وصل شده است.', ip_none: 'این آدرس در بازه‌ی انتخابی دیده نشده است.',
+  ip_shared: 'چند کاربر ({n}) از این آدرس استفاده کرده‌اند — خانه، دفتر کار یا دروازه‌ی اپراتور موبایل.',
+
+  'ev.max_ips': 'آی‌پی هم‌زمان زیاد', 'ev.new_ip': 'آی‌پی جدید', 'ev.new_country': 'کشور جدید', 'ev.traffic_spike': 'جهش ترافیک', 'ev.quota': 'حجم',
+  'ev.expiry': 'انقضا', 'ev.node_offline': 'نود آفلاین', 'ev.node_online': 'نود آنلاین', 'ev.log_stale': 'توقف لاگ', 'ev.backup': 'پشتیبان',
+
+  'node.add': 'افزودن نود', 'node.hint': 'نودها لاگ دسترسی و ترافیک خود را به این سرور می‌فرستند.', 'node.none': 'هنوز نودی متصل نشده است.', 'node.name': 'نام',
+  'node.name_help': 'یک برچسب کوتاه مثل de-1 یا fr-2.', 'node.never': 'هرگز متصل نشده', 'node.ip': 'آدرس', 'node.version': 'نسخه', 'node.panel': 'پنل', 'node.lines': 'خط‌ها',
+  'node.delete': 'حذف نود', 'node.delete_text': '{name} حذف شود؟ داده‌های جمع‌آوری‌شده‌ی آن می‌ماند.', 'node.created': 'نود ساخته شد',
+  'node.token_once': 'توکن را همین حالا کپی کنید؛ فقط یک بار نمایش داده می‌شود.', 'node.token': 'توکن', 'node.install': 'نصب روی نود', 'node.manual': 'یا پیکربندی برنامه‌ی نصب‌شده',
+  'node.proxy_help': 'اگر نود مستقیماً به این سرور دسترسی ندارد، در config.json آن مقدار "server_proxy": "socks5://host:port" را اضافه کنید.',
+
+  'sys.collection': 'جمع‌آوری لاگ', 'sys.log.ok': 'در حال جمع‌آوری', 'sys.log.waiting': 'در انتظار لاگ', 'sys.log.disabled': 'لاگ دسترسی خاموش است', 'sys.log.missing': 'لاگ پیدا نشد', 'sys.log.no_panel': 'پنلی تنظیم نشده',
+  'sys.last_line': 'آخرین خط {t}', 'sys.no_lines': 'هنوز خطی دریافت نشده', 'sys.lines': '{n} خط خوانده شد', 'sys.enable_log': 'در پنل 3x-ui به بخش تنظیمات Xray بروید، بخش log را مانند زیر تنظیم و Xray را ری‌استارت کنید:',
+  'sys.panel': 'اتصال به پنل', 'sys.panel_ok': 'متصل', 'sys.panel_err': 'خطا', 'sys.panel_none': 'استفاده نمی‌شود', 'sys.panel_last': 'آخرین خواندن موفق {t}',
+  'sys.db_size': 'حجم پایگاه داده', 'sys.rows': '{n} ردیف جزئیات', 'sys.users': 'کاربران ردیابی‌شده', 'sys.ips_domains': '{a} آی‌پی · {b} سایت', 'sys.uptime': 'مدت اجرا',
+  'sys.data_span': 'بازه‌ی داده‌های جمع‌آوری‌شده',
+  'bk.title': 'پشتیبان‌ها', 'bk.count': '{n} نسخه', 'bk.create': 'پشتیبان‌گیری همین حالا', 'bk.upload': 'آپلود و بازیابی', 'bk.hint': 'پشتیبان‌ها نسخه‌ی یکپارچه‌ی کل پایگاه داده هستند.',
+  'bk.created': 'پشتیبان ساخته شد', 'bk.none': 'هنوز پشتیبانی نیست.', 'bk.restore': 'بازیابی', 'bk.restore_text': 'پس از راه‌اندازی مجدد، پایگاه داده با این پشتیبان جایگزین می‌شود. پایگاه فعلی در پوشه‌ی پشتیبان‌ها نگه داشته می‌شود. ادامه می‌دهید؟',
+  'bk.pending': 'یک بازیابی در انتظار راه‌اندازی مجدد است.', 'bk.staged': 'بازیابی آماده شد', 'bk.staged_text': 'برای پایان بازیابی، XrayScope را راه‌اندازی مجدد کنید. مدیر سرویس آن را خودکار دوباره اجرا می‌کند.',
+
+  'set.general': 'عمومی', 'set.tz': 'منطقه‌ی زمانی نمایش', 'set.tz_help': 'برای روزها، نمودارها و تحلیل خواب. «Local» یعنی منطقه‌ی زمانی سرور.',
+  'set.server_lang': 'زبان پیام‌های تلگرام', 'set.server_lang_help': 'زبان خودِ پنل از نوار بالا تغییر می‌کند.',
+  'set.gap': 'فاصله‌ی نشست (دقیقه)', 'set.gap_help': 'سکوت بیشتر از این مقدار نشست را تمام می‌کند.', 'set.online_window': 'پنجره‌ی آنلاین (دقیقه)', 'set.online_window_help': 'کاربری که در این مدت دیده شده باشد آنلاین حساب می‌شود.',
+  'set.telegram': 'بات تلگرام', 'set.tg_enabled': 'ارسال اعلان به تلگرام', 'set.tg_token': 'توکن بات', 'set.tg_token_help': 'بات را با @BotFather بسازید.', 'set.token_saved': 'ذخیره شده',
+  'set.tg_chats': 'شناسه‌ی چت‌ها', 'set.tg_chats_help': 'با کاما جدا کنید. فقط این چت‌ها می‌توانند از دستورهای بات استفاده کنند.', 'set.tg_proxy': 'پروکسی', 'set.tg_proxy_help': 'آدرس http://‎، https:// یا socks5://‎. خالی یعنی پروکسی سراسری فایل پیکربندی.',
+  'set.tg_api': 'سرور Bot API', 'set.tg_api_help': 'اختیاری؛ رله یا سرور Bot API شخصی.', 'set.tg_commands': 'پاسخ به دستورهای بات (‎/online ، /user ، /top ، /status‎)',
+  'set.tg_test': 'ذخیره و ارسال آزمایشی', 'set.tg_ok': 'به @{bot} متصل شد', 'set.tg_clear': 'حذف توکن', 'set.tg_clear_hint': 'با ذخیره کردن، توکن حذف می‌شود.',
+  'set.alerts': 'هشدارها', 'set.alerts_intro': 'هشدارها همیشه در گزارش رویدادها ثبت می‌شوند و در صورت فعال بودن تلگرام به آن هم ارسال می‌شوند.', 'set.cooldown': 'تکرار پس از (دقیقه)',
+  'set.al.max_ips': 'آی‌پی هم‌زمان بیش از حد', 'set.al.max_ips_help': 'مقدار ۰ یعنی سقف آی‌پیِ تعریف‌شده برای هر حساب در پنل.', 'set.al.max_ips.unit': 'آی‌پی مجاز',
+  'set.al.new_ip': 'آی‌پی جدید', 'set.al.new_ip_help': 'کاربری قدیمی از آدرسی که تا حالا دیده نشده وصل می‌شود.',
+  'set.al.new_country': 'کشور جدید', 'set.al.new_country_help': 'به پایگاه GeoIP نیاز دارد.',
+  'set.al.spike': 'جهش ترافیک', 'set.al.spike_help': 'یک کاربر در یک ساعت ترافیک زیادی مصرف می‌کند.', 'set.al.spike.unit': 'مگابایت در ساعت',
+  'set.al.quota': 'نزدیک شدن به پایان حجم', 'set.al.quota_help': 'وقتی حساب به سقف حجمش نزدیک می‌شود هشدار می‌دهد.', 'set.al.quota.unit': 'درصد مصرف',
+  'set.al.expiry': 'نزدیک شدن به انقضا', 'set.al.expiry_help': 'پیش از انقضای حساب هشدار می‌دهد.', 'set.al.expiry.unit': 'روز قبل',
+  'set.al.node': 'نود آفلاین', 'set.al.node_help': 'نودی دیگر گزارش نمی‌دهد.', 'set.al.node.unit': 'دقیقه سکوت',
+  'set.al.log': 'توقف جمع‌آوری لاگ', 'set.al.log_help': 'مدتی است خط جدیدی در لاگ دسترسی نیامده.', 'set.al.log.unit': 'دقیقه',
+  'set.al.digest': 'خلاصه‌ی روزانه', 'set.al.digest_help': 'گزارش کوتاهی که هر روز یک بار فرستاده می‌شود.', 'set.al.digest.unit': 'ساعت (۰ تا ۲۳)',
+  'set.min_overlap': 'هم‌پوشانی لازم برای هشدار آی‌پی (دقیقه)', 'set.min_overlap_help': 'از هشدار اشتباه هنگام جابه‌جایی گوشی بین وای‌فای و اینترنت همراه جلوگیری می‌کند.',
+  'set.rules': 'قانون‌های دلخواه دسته‌بندی', 'set.rules_intro': 'سایت‌هایی را که XrayScope نمی‌شناسد به آن بیاموزید. هر قانون دامنه و همه‌ی زیردامنه‌هایش را پوشش می‌دهد.',
+  'set.rule_domain': 'دامنه', 'set.rule_cat': 'دسته', 'set.rule_service': 'نام سرویس', 'set.rule_add': 'افزودن قانون', 'set.reclassify': 'اعمال روی داده‌های موجود',
+  'set.reclassify_help': 'برچسب سایت‌های ذخیره‌شده را به‌روز می‌کند. آمار زمان استفاده همان برچسب هنگام ثبت را نگه می‌دارد.', 'set.reclassified': 'برچسب {n} سایت به‌روز شد',
+  'set.backup': 'پشتیبان‌گیری و نگهداری', 'set.bk_enabled': 'ساخت خودکار پشتیبان', 'set.bk_interval': 'هر چند ساعت', 'set.bk_keep': 'نگه‌داشتن جدیدترین‌ها',
+  'set.bk_telegram': 'ارسال هر پشتیبان به تلگرام (تا ۴۵ مگابایت)', 'set.rt_visits': 'نگه‌داشتن جزئیات ساعتی سایت‌ها (روز)', 'set.rt_visits_help': 'رکوردهای قدیمی‌تر به ردیف‌های روزانه ادغام می‌شوند. چیزی حذف نمی‌شود.',
+  'set.rt_traffic': 'نگه‌داشتن ترافیک ۵ دقیقه‌ای (روز)', 'set.rt_traffic_help': 'ترافیک ساعتی برای همیشه نگه داشته می‌شود.',
+  'set.account': 'حساب مدیر', 'set.old_pw': 'گذرواژه‌ی فعلی', 'set.new_pw': 'گذرواژه‌ی جدید', 'set.new_pw_help': 'دست‌کم ۸ نویسه.', 'set.change_pw': 'تغییر گذرواژه',
+  'set.pw_changed': 'گذرواژه تغییر کرد', 'set.saved': 'تنظیمات ذخیره شد',
+};
+
+const cats = {
+  en: { ai: 'AI', social: 'Social media', messaging: 'Messaging', video: 'Video', music: 'Music', gaming: 'Gaming', shopping: 'Shopping', news: 'News', dev: 'Development', search: 'Search', email: 'Email', work: 'Work tools', cloud: 'Cloud storage', finance: 'Finance & crypto', education: 'Education', tools: 'Utilities', vpn: 'VPN & proxy', other: 'Other sites', ip: 'Direct IP', ads: 'Ads', telemetry: 'Analytics', push: 'Push', connectivity: 'Connectivity', dns: 'DNS', update: 'Updates', system: 'System services', cdn: 'CDN & infra' },
+  fa: { ai: 'هوش مصنوعی', social: 'شبکه‌های اجتماعی', messaging: 'پیام‌رسان', video: 'ویدیو', music: 'موسیقی', gaming: 'بازی', shopping: 'خرید', news: 'اخبار', dev: 'برنامه‌نویسی', search: 'جستجو', email: 'ایمیل', work: 'ابزار کار', cloud: 'ذخیره‌سازی ابری', finance: 'مالی و ارز دیجیتال', education: 'آموزش', tools: 'ابزارها', vpn: 'VPN و پروکسی', other: 'سایر سایت‌ها', ip: 'آی‌پی مستقیم', ads: 'تبلیغات', telemetry: 'تحلیل و آمار', push: 'نوتیفیکیشن', connectivity: 'بررسی اتصال', dns: 'DNS', update: 'به‌روزرسانی', system: 'سرویس‌های سیستمی', cdn: 'CDN و زیرساخت' },
+};
+for (const k of Object.keys(cats.en)) { en['cat.' + k] = cats.en[k]; fa['cat.' + k] = cats.fa[k]; }
+
+dict.en = en;
+dict.fa = fa;
