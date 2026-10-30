@@ -520,6 +520,14 @@ func (s *Store) TouchNode(id int64, ip, version, panel string) error {
 	return err
 }
 
+// SetNodeLastSeen overrides a node's last contact time (used by tests).
+func (s *Store) SetNodeLastSeen(id, ts int64) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	_, err := s.w.Exec(`UPDATE nodes SET last_seen=? WHERE id=?`, ts, id)
+	return err
+}
+
 // Nodes lists registered nodes.
 func (s *Store) Nodes(ctx context.Context) ([]Node, error) {
 	rows, err := s.r.QueryContext(ctx, `SELECT id,name,created_at,last_seen,last_ip,version,panel,lines_in FROM nodes ORDER BY id`)

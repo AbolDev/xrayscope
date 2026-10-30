@@ -67,7 +67,16 @@ func main() {
 	n := flag.Int("users", 14, "number of users")
 	seed := flag.Int64("seed", 7, "random seed")
 	tzName := flag.String("tz", "Asia/Tehran", "time zone the users live in")
+	logOut := flag.String("log-out", "", "write a synthetic access.log here instead of filling a database (load testing)")
+	logLines := flag.Int("log-lines", 2_000_000, "number of lines for -log-out")
 	flag.Parse()
+
+	if *logOut != "" {
+		if err := writeLog(*logOut, *logLines, *n, *seed); err != nil {
+			fatal(err)
+		}
+		return
+	}
 
 	loc, err := time.LoadLocation(*tzName)
 	if err != nil {

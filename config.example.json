@@ -1,0 +1,19 @@
+{
+  "role": "server",
+  "listen": "0.0.0.0:8686",
+  "base_path": "",
+  "data_dir": "/var/lib/xrayscope",
+  "tls_cert": "",
+  "tls_key": "",
+  "trust_proxy": false,
+  "log_path": "auto",
+  "log_timezone": "Local",
+  "proxy": "",
+  "geo_db": "",
+  "asn_db": "",
+  "panel": {
+    "type": "3x-ui",
+    "db_path": "/etc/x-ui/x-ui.db",
+    "poll_seconds": 30
+  }
+}

@@ -126,7 +126,15 @@ func (t *Tailer) Run(ctx context.Context) error {
 			off, have = 0, 0
 		}
 
-		// Read everything that is available.
+		// Read everything that is available. Commit after every chunk so a
+		// large backlog is flushed in small batches instead of piling up.
+		commit := func() error {
+			pending = Position{Offset: off}
+			pending.FPLen, pending.FP = fingerprint(f)
+			err := t.Commit(pending, lines)
+			lines = 0
+			return err
+		}
 		for ctx.Err() == nil {
 			n, err := f.Read(buf[have:])
 			if n > 0 {
@@ -137,6 +145,9 @@ func (t *Tailer) Run(ctx context.Context) error {
 				if have == len(buf) { // absurdly long line without newline: drop it
 					off += int64(have)
 					have = 0
+				}
+				if err := commit(); err != nil {
+					return err
 				}
 			}
 			if err != nil {
@@ -149,13 +160,9 @@ func (t *Tailer) Run(ctx context.Context) error {
 				break
 			}
 		}
-
-		pending = Position{Offset: off}
-		pending.FPLen, pending.FP = fingerprint(f)
-		if err := t.Commit(pending, lines); err != nil {
+		if err := commit(); err != nil {
 			return err
 		}
-		lines = 0
 
 		if moved {
 			f.Close()

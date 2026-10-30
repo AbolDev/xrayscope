@@ -73,7 +73,7 @@ function start() {
   const themeBtn = h('button', { class: 'btn icon', title: t('theme'), onclick: () => { setTheme(state.theme === 'dark' ? 'light' : 'dark'); themeBtn.replaceChildren(icon(state.theme === 'dark' ? 'sun' : 'moon')); } }, icon(state.theme === 'dark' ? 'sun' : 'moon'));
   const langBtn = h('button', { class: 'btn', title: 'Language', onclick: () => { setLang(isFa() ? 'en' : 'fa'); start(); } }, isFa() ? 'EN' : 'فارسی');
   const outBtn = h('button', { class: 'btn icon', title: t('logout'), onclick: async () => { await guard(() => api.post('logout')); showLogin(); } }, icon('logout'));
-  topbar.append(menuBtn, title, h('div', { class: 'grow' }), rangeBox, langBtn, themeBtn, outBtn);
+  topbar.append(menuBtn, title, h('div', { class: 'spacer' }), rangeBox, langBtn, themeBtn, outBtn);
 
   const navLinks = [];
   const nav = h('nav', { class: 'nav' });

@@ -71,7 +71,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .muted { color: var(--muted); }
 .faint { color: var(--faint); }
 .nowrap { white-space: nowrap; }
-.grow { flex: 1; min-width: 0; }
+.grow { flex: 1 1 170px; min-width: 0; }
+.spacer { flex: 1; }
 .hidden { display: none !important; }
 
 /* ---------- layout ---------- */
