@@ -203,6 +203,7 @@ const fa = {
   'node.proxy_help': 'اگر نود مستقیماً به این سرور دسترسی ندارد، در config.json آن مقدار "server_proxy": "socks5://host:port" را اضافه کنید.',
 
   'sys.collection': 'جمع‌آوری لاگ', 'sys.log.ok': 'در حال جمع‌آوری', 'sys.log.waiting': 'در انتظار لاگ', 'sys.log.disabled': 'لاگ دسترسی خاموش است', 'sys.log.missing': 'لاگ پیدا نشد', 'sys.log.no_panel': 'پنلی تنظیم نشده',
+  'sys.msg.disabled': 'لاگ دسترسی در پنل خاموش است؛ بنابراین هنوز نمی‌توان داده‌ی هر کاربر را جمع‌آوری کرد.', 'sys.msg.missing': 'فایل لاگ دسترسی هنوز وجود ندارد یا خواندن پایگاه داده‌ی پنل ممکن نیست.', 'sys.msg.no_panel': 'پنلی تنظیم نشده است. در فایل پیکربندی panel.type و log_path را مشخص کنید.',
   'cdn.hint': 'این آدرس سرور CDN است، نه آی‌پی خود کاربر.', 'sys.cdn_title': 'به نظر می‌رسد کاربران از پشت CDN وصل می‌شوند', 'sys.cdn_text': 'بیشتر اتصال‌ها از آدرس‌های CDN (کلودفلر) می‌آیند؛ پس آی‌پی واقعی، کشور و بررسی آی‌پی هم‌زمان معنا ندارند. در تنظیمات Sockopt همان inbound گزینه‌ی Trusted X-Forwarded-For را با این هدرها فعال و Xray را ری‌استارت کنید:',
   'sys.last_line': 'آخرین خط {t}', 'sys.no_lines': 'هنوز خطی دریافت نشده', 'sys.lines': '{n} خط خوانده شد', 'sys.enable_log': 'در پنل 3x-ui به بخش تنظیمات Xray بروید، بخش log را مانند زیر تنظیم و Xray را ری‌استارت کنید:',
   'sys.panel': 'اتصال به پنل', 'sys.panel_ok': 'متصل', 'sys.panel_err': 'خطا', 'sys.panel_none': 'استفاده نمی‌شود', 'sys.panel_last': 'آخرین خواندن موفق {t}',
