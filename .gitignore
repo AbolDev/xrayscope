@@ -1,0 +1,11 @@
+/bin/
+/dist/
+/data/
+*.db
+*.db-wal
+*.db-shm
+*.exe
+*.log
+config.json
+.vscode/
+.idea/

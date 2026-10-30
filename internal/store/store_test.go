@@ -1,0 +1,178 @@
+package store
+
+import (
+	"context"
+	"math/bits"
+	"path/filepath"
+	"testing"
+	"time"
+
+	"xrayscope/internal/model"
+)
+
+func openTest(t *testing.T) *Store {
+	t.Helper()
+	s, err := Open(filepath.Join(t.TempDir(), "x.db"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { s.Close() })
+	return s
+}
+
+func TestApplyBatchAndQuery(t *testing.T) {
+	s := openTest(t)
+	ctx := context.Background()
+	base := time.Now().Add(-2*time.Hour).Unix() / 60
+
+	recs := []model.Rec{
+		{M: base, U: "alice", IP: "1.1.1.1", D: "chatgpt.com", N: 3},
+		{M: base, U: "alice", IP: "1.1.1.1", D: "connectivitycheck.gstatic.com", N: 1},
+		{M: base + 1, U: "alice", IP: "1.1.1.1", D: "connectivitycheck.gstatic.com", N: 1},
+		{M: base + 1, U: "alice", IP: "2.2.2.2", D: "instagram.com", N: 2},
+		{M: base, U: "bob", IP: "3.3.3.3", D: "settings-win.data.microsoft.com", N: 5},
+	}
+	obs, err := s.ApplyBatch(0, recs, map[string]string{"offset": "42"}, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(obs) != 3 {
+		t.Fatalf("obs = %d, want 3", len(obs))
+	}
+	// applying the same minute again must merge, not duplicate
+	if _, err := s.ApplyBatch(0, recs[:1], nil, 1); err != nil {
+		t.Fatal(err)
+	}
+	if v, _, _ := s.KV("offset"); v != "42" {
+		t.Fatalf("offset kv = %q", v)
+	}
+
+	users, _ := s.Users(ctx)
+	if len(users) != 2 {
+		t.Fatalf("users = %d", len(users))
+	}
+	alice, err := s.UserByEmail(ctx, "alice")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if alice.FirstSeen != base*60 || alice.LastSeen != (base+1)*60 {
+		t.Fatalf("seen = %d..%d", alice.FirstSeen, alice.LastSeen)
+	}
+
+	hour := base / 60
+	rows, err := s.Act(ctx, alice.ID, hour-1, hour+2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var total, inter int
+	var reqs int64
+	for _, r := range rows {
+		total += bits.OnesCount64(uint64(r.Mask))
+		inter += bits.OnesCount64(uint64(r.IMask))
+		reqs += r.Reqs
+	}
+	if reqs != 3+1+1+2+3 {
+		t.Fatalf("reqs = %d", reqs)
+	}
+	if total == 0 || inter == 0 || inter > total {
+		t.Fatalf("masks total=%d interactive=%d", total, inter)
+	}
+
+	svc, _ := s.Svc(ctx, alice.ID, hour-1, hour+2)
+	names, _ := s.Services(ctx)
+	seen := map[string]bool{}
+	for _, v := range svc {
+		seen[names[v.ServiceID].Name] = true
+	}
+	for _, want := range []string{"ChatGPT", "Instagram", "Connectivity check"} {
+		if !seen[want] {
+			t.Errorf("service %q missing: %v", want, seen)
+		}
+	}
+
+	fp, _ := s.FP(ctx, 0, 0, 1<<40)
+	found := false
+	for _, f := range fp {
+		if f.Kind == "os" && f.Value == "Windows" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("windows fingerprint missing: %+v", fp)
+	}
+}
+
+func TestTrafficDeltas(t *testing.T) {
+	s := openTest(t)
+	ctx := context.Background()
+	now := time.Now().Unix()
+	deltas := []model.TrafficRec{
+		{T: now, U: "alice", Up: 10, Down: 100},
+		{T: now + 1, U: "alice", Up: 5, Down: 50},
+	}
+	if err := s.ApplyTraffic(0, deltas, map[string][2]int64{"alice": {15, 150}}); err != nil {
+		t.Fatal(err)
+	}
+	last, _ := s.TrafficLast(0)
+	if last["alice"] != [2]int64{15, 150} {
+		t.Fatalf("last = %v", last)
+	}
+	pts, _ := s.TrafficHourly(ctx, 0, now/3600-1, now/3600+2)
+	var up, down int64
+	for _, p := range pts {
+		up += p.Up
+		down += p.Down
+	}
+	if up != 15 || down != 150 {
+		t.Fatalf("hourly up=%d down=%d", up, down)
+	}
+}
+
+func TestCompactVisits(t *testing.T) {
+	s := openTest(t)
+	ctx := context.Background()
+	old := time.Now().Add(-100*24*time.Hour).Unix() / 60
+	recs := []model.Rec{
+		{M: old, U: "a", IP: "1.1.1.1", D: "example.com", N: 2},
+		{M: old + 120, U: "a", IP: "1.1.1.1", D: "example.com", N: 3},
+	}
+	if _, err := s.ApplyBatch(0, recs, nil, 2); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Compact(time.Now().Add(-30*24*time.Hour), time.Now().Add(-14*24*time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	u, _ := s.UserByEmail(ctx, "a")
+	rows, err := s.Visits(ctx, u.ID, old/60-48, old/60+48)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var reqs int64
+	for _, r := range rows {
+		if r.Grain != 1 {
+			t.Fatalf("expected daily rows, got %+v", r)
+		}
+		reqs += r.Reqs
+	}
+	if reqs != 5 {
+		t.Fatalf("reqs after compaction = %d", reqs)
+	}
+}
+
+func TestNodeAuth(t *testing.T) {
+	s := openTest(t)
+	n, tok, err := s.CreateNode("de-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.NodeByToken(context.Background(), tok)
+	if err != nil || got.ID != n.ID {
+		t.Fatalf("auth failed: %v %+v", err, got)
+	}
+	if _, err := s.NodeByToken(context.Background(), "bad"); err == nil {
+		t.Fatal("bad token accepted")
+	}
+	if _, _, err := s.CreateNode("de-1"); err == nil {
+		t.Fatal("duplicate name accepted")
+	}
+}

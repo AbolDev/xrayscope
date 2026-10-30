@@ -1,0 +1,245 @@
+package analytics
+
+import (
+	"sort"
+	"time"
+
+	"xrayscope/internal/store"
+)
+
+// Heat is minutes of activity by weekday (0 = Sunday) and hour of day.
+type Heat [7][24]int64
+
+// Heatmap counts active minutes per local weekday and hour. When interactive
+// is true only interactive minutes are counted.
+func Heatmap(rows []store.ActRow, loc *time.Location, interactive bool) Heat {
+	var h Heat
+	pick := Presence
+	if interactive {
+		pick = Interactive
+	}
+	for hour, mask := range unionByHour(rows, pick) {
+		sec := hour * 3600
+		off := zoneOffset(loc, sec)
+		// split the UTC hour across local hours (zones with :30 offsets)
+		hourMinutes(hour, mask, func(m int64) {
+			local := m*60 + off
+			day := floorDiv(local, 86400)
+			wd := mod(day+4, 7) // 1970-01-01 was a Thursday
+			hod := mod(floorDiv(local, 3600), 24)
+			h[wd][hod]++
+		})
+	}
+	return h
+}
+
+// unionByHour ORs the masks of all rows of the same hour.
+func unionByHour(rows []store.ActRow, pick func(store.ActRow) int64) map[int64]int64 {
+	out := map[int64]int64{}
+	for _, r := range rows {
+		out[r.Hour] |= pick(r)
+	}
+	return out
+}
+
+// DayStat is the presence of one local day.
+type DayStat struct {
+	Date        string `json:"date"`
+	Online      int64  `json:"online"`      // minutes with any traffic
+	Interactive int64  `json:"interactive"` // minutes with interactive traffic
+	Reqs        int64  `json:"reqs"`
+	IPs         int    `json:"ips"` // distinct client IPs
+}
+
+// Daily folds presence rows of one user into per-day statistics.
+func Daily(rows []store.ActRow, loc *time.Location) []DayStat {
+	type acc struct {
+		on, inter map[int64]bool
+		reqs      int64
+		ips       map[int64]bool
+	}
+	days := map[int64]*acc{}
+	get := func(d int64) *acc {
+		a := days[d]
+		if a == nil {
+			a = &acc{on: map[int64]bool{}, inter: map[int64]bool{}, ips: map[int64]bool{}}
+			days[d] = a
+		}
+		return a
+	}
+	for _, r := range rows {
+		hourMinutes(r.Hour, r.Mask, func(m int64) {
+			a := get(localDay(loc, m))
+			a.on[m] = true
+		})
+		hourMinutes(r.Hour, r.IMask, func(m int64) {
+			a := get(localDay(loc, m))
+			a.inter[m] = true
+		})
+		a := get(localDay(loc, r.Hour*60))
+		a.reqs += r.Reqs
+		a.ips[r.IPID] = true
+	}
+	keys := make([]int64, 0, len(days))
+	for d := range days {
+		keys = append(keys, d)
+	}
+	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
+	out := make([]DayStat, 0, len(keys))
+	for _, d := range keys {
+		a := days[d]
+		out = append(out, DayStat{Date: DayString(d), Online: int64(len(a.on)), Interactive: int64(len(a.inter)), Reqs: a.reqs, IPs: len(a.ips)})
+	}
+	return out
+}
+
+// HourlyPoint is activity within one absolute hour.
+type HourlyPoint struct {
+	Hour        int64 `json:"hour"`
+	Online      int   `json:"online"`
+	Interactive int   `json:"interactive"`
+}
+
+// HourlySeries returns minutes of activity per absolute hour for one user.
+func HourlySeries(rows []store.ActRow) []HourlyPoint {
+	pres := unionByHour(rows, Presence)
+	inter := unionByHour(rows, Interactive)
+	hours := make([]int64, 0, len(pres))
+	for h := range pres {
+		hours = append(hours, h)
+	}
+	sort.Slice(hours, func(i, j int) bool { return hours[i] < hours[j] })
+	out := make([]HourlyPoint, 0, len(hours))
+	for _, h := range hours {
+		out = append(out, HourlyPoint{Hour: h, Online: PopCount(pres[h]), Interactive: PopCount(inter[h])})
+	}
+	return out
+}
+
+// TimeStat is time spent on a category or service.
+type TimeStat struct {
+	Category string `json:"category"`
+	Service  string `json:"service,omitempty"`
+	Minutes  int64  `json:"minutes"`
+	Reqs     int64  `json:"reqs"`
+}
+
+// TimeSpent aggregates service time. Category totals use the union of
+// minutes across services so parallel use is not double counted. Per-user
+// results are summed when rows from several users are given.
+func TimeSpent(rows []store.SvcRow, services map[int64]store.Service) (byCategory, byService []TimeStat) {
+	type ck struct {
+		user int64
+		cat  string
+		hour int64
+	}
+	catMask := map[ck]int64{}
+	type sk struct {
+		cat, name string
+	}
+	svcMin := map[sk]int64{}
+	svcReqs := map[sk]int64{}
+	catReqs := map[string]int64{}
+	for _, r := range rows {
+		sv, ok := services[r.ServiceID]
+		if !ok {
+			continue
+		}
+		catMask[ck{r.UserID, sv.Category, r.Hour}] |= r.Mask
+		svcMin[sk{sv.Category, sv.Name}] += int64(PopCount(r.Mask))
+		svcReqs[sk{sv.Category, sv.Name}] += r.Reqs
+		catReqs[sv.Category] += r.Reqs
+	}
+	catMin := map[string]int64{}
+	for k, m := range catMask {
+		catMin[k.cat] += int64(PopCount(m))
+	}
+	for c, m := range catMin {
+		byCategory = append(byCategory, TimeStat{Category: c, Minutes: m, Reqs: catReqs[c]})
+	}
+	for k, m := range svcMin {
+		byService = append(byService, TimeStat{Category: k.cat, Service: k.name, Minutes: m, Reqs: svcReqs[k]})
+	}
+	sort.Slice(byCategory, func(i, j int) bool { return byCategory[i].Minutes > byCategory[j].Minutes })
+	sort.Slice(byService, func(i, j int) bool { return byService[i].Minutes > byService[j].Minutes })
+	return byCategory, byService
+}
+
+// SiteStat is one site visited by a user.
+type SiteStat struct {
+	Domain   string `json:"domain"`
+	Category string `json:"category"`
+	Service  string `json:"service"`
+	Minutes  int64  `json:"minutes"`
+	Reqs     int64  `json:"reqs"`
+	First    int64  `json:"first"` // unix minute
+	Last     int64  `json:"last"`
+}
+
+// Sites aggregates visit rows per site. Daily (compacted) rows contribute
+// hours*60 as an upper bound for minutes.
+func Sites(rows []store.VisitRow, domains map[int64]store.Domain, services map[int64]store.Service, from, to int64) []SiteStat {
+	acc := map[int64]*SiteStat{}
+	for _, r := range rows {
+		d, ok := domains[r.DomainID]
+		if !ok {
+			continue
+		}
+		var first, last, mins int64
+		if r.Grain == 0 {
+			if r.Slot < from/60 || r.Slot >= (to+59)/60 {
+				continue
+			}
+			mins = int64(PopCount(r.Mask))
+			first = r.Slot*60 + int64(lowBit(r.Mask))
+			last = r.Slot*60 + int64(highBit(r.Mask))
+		} else {
+			mins = int64(PopCount(r.Mask)) * 60
+			first = r.Slot*60 + int64(lowBit(r.Mask))*60
+			last = r.Slot*60 + int64(highBit(r.Mask))*60 + 59
+		}
+		s := acc[r.DomainID]
+		if s == nil {
+			sv := services[d.ServiceID]
+			s = &SiteStat{Domain: d.Name, Category: d.Category, Service: sv.Name, First: first, Last: last}
+			acc[r.DomainID] = s
+		}
+		s.Minutes += mins
+		s.Reqs += r.Reqs
+		if first < s.First {
+			s.First = first
+		}
+		if last > s.Last {
+			s.Last = last
+		}
+	}
+	out := make([]SiteStat, 0, len(acc))
+	for _, s := range acc {
+		out = append(out, *s)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Reqs != out[j].Reqs {
+			return out[i].Reqs > out[j].Reqs
+		}
+		return out[i].Domain < out[j].Domain
+	})
+	return out
+}
+
+func lowBit(m int64) int {
+	for i := 0; i < 64; i++ {
+		if m&(1<<uint(i)) != 0 {
+			return i
+		}
+	}
+	return 0
+}
+
+func highBit(m int64) int {
+	for i := 63; i >= 0; i-- {
+		if m&(1<<uint(i)) != 0 {
+			return i
+		}
+	}
+	return 0
+}

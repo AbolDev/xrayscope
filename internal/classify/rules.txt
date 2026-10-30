@@ -1,0 +1,363 @@
+# Built-in classification rules.
+#
+# category|service|domain,domain,...      domain suffix -> category/service (longest suffix wins)
+# cidr|category|service|net,net,...         destination IP ranges
+# hint|os|value|weight|domain,domain,...    device fingerprint: operating system
+# hint|browser|value|weight|domain,...      device fingerprint: browser
+#
+# Lines starting with # are comments. Custom rules from the panel settings
+# are applied on top of these.
+
+# ---------------------------------------------------------------- AI
+ai|ChatGPT|openai.com,chatgpt.com,oaiusercontent.com,oaistatic.com,openaiapi-site.azureedge.net
+ai|Claude|claude.ai,anthropic.com,claudeusercontent.com,claude.com
+ai|Gemini|gemini.google.com,bard.google.com,aistudio.google.com,notebooklm.google.com,makersuite.google.com,generativelanguage.googleapis.com,ai.google.dev,deepmind.google
+ai|Copilot|copilot.microsoft.com,copilot.cloud.microsoft,githubcopilot.com,copilot-proxy.githubusercontent.com
+ai|Perplexity|perplexity.ai
+ai|DeepSeek|deepseek.com
+ai|Grok|grok.com,x.ai
+ai|Mistral|mistral.ai
+ai|Hugging Face|huggingface.co,hf.co
+ai|Midjourney|midjourney.com
+ai|Character.AI|character.ai
+ai|Poe|poe.com
+ai|Cursor|cursor.sh,cursor.com,cursorapi.com
+ai|Windsurf|codeium.com,windsurf.com
+ai|Stability AI|stability.ai,dreamstudio.ai
+ai|Runway|runwayml.com
+ai|ElevenLabs|elevenlabs.io
+ai|Suno|suno.com,suno.ai
+ai|Replicate|replicate.com
+ai|OpenRouter|openrouter.ai
+ai|Qwen|qwen.ai,qwenlm.ai,tongyi.aliyun.com
+ai|Kimi|kimi.com,moonshot.cn
+ai|Leonardo|leonardo.ai
+ai|Ideogram|ideogram.ai
+ai|Meta AI|meta.ai
+ai|Phind|phind.com
+ai|You.com|you.com
+ai|Cohere|cohere.com,cohere.ai
+ai|Groq|groq.com
+ai|Together AI|together.ai,together.xyz
+ai|Pika|pika.art
+ai|Luma|lumalabs.ai
+ai|Kling|klingai.com
+ai|Gamma|gamma.app
+ai|Lovable|lovable.dev
+ai|Bolt|bolt.new
+ai|v0|v0.dev
+
+# ---------------------------------------------------------------- Social
+social|Instagram|instagram.com,cdninstagram.com
+social|Facebook|facebook.com,fbcdn.net,fb.com,facebook.net,fbsbx.com,fb.me
+social|Threads|threads.net,threads.com
+social|X / Twitter|twitter.com,x.com,twimg.com,t.co
+social|TikTok|tiktok.com,tiktokv.com,tiktokcdn.com,tiktokcdn-us.com,byteoversea.com,musical.ly,ibytedtos.com,tiktokw.us
+social|Snapchat|snapchat.com,sc-cdn.net,snap-dev.net
+social|LinkedIn|linkedin.com,licdn.com
+social|Reddit|reddit.com,redd.it,redditmedia.com,redditstatic.com
+social|Pinterest|pinterest.com,pinimg.com
+social|Tumblr|tumblr.com
+social|Bluesky|bsky.app,bsky.social
+social|VK|vk.com,userapi.com,vk-cdn.net
+social|Weibo|weibo.com,sinaimg.cn
+social|Quora|quora.com,qualtrics.com
+social|Clubhouse|clubhouse.com
+social|Mastodon|mastodon.social
+
+# ---------------------------------------------------------------- Messaging
+messaging|Telegram|telegram.org,t.me,telegram.me,telesco.pe,tdesktop.com,cdn-telegram.org,telegra.ph,api.telegram.org
+messaging|WhatsApp|whatsapp.com,whatsapp.net,wa.me
+messaging|Signal|signal.org,whispersystems.org
+messaging|Discord|discord.com,discordapp.com,discordapp.net,discord.gg,discord.media
+messaging|Viber|viber.com
+messaging|Skype|skype.com,skypeassets.com
+messaging|Messenger|messenger.com
+messaging|LINE|line.me,line-apps.com,line-scdn.net,naver.jp
+messaging|WeChat|wechat.com,weixin.qq.com,wechatapp.com
+messaging|Eitaa|eitaa.com
+messaging|Bale|bale.ai
+messaging|Rubika|rubika.ir
+messaging|iGap|igap.net
+
+# ---------------------------------------------------------------- Video
+video|YouTube|youtube.com,googlevideo.com,ytimg.com,youtu.be,youtube-nocookie.com,youtubei.googleapis.com,yt3.ggpht.com,yt4.ggpht.com
+video|Netflix|netflix.com,nflxvideo.net,nflximg.net,nflxext.com,nflxso.net
+video|Twitch|twitch.tv,ttvnw.net,jtvnw.net,twitchcdn.net
+video|Disney+|disneyplus.com,disney-plus.net,bamgrid.com,dssott.com
+video|Prime Video|primevideo.com,aiv-cdn.net,pv-cdn.net,amazonvideo.com
+video|Max|max.com,hbomax.com,hbonow.com
+video|Hulu|hulu.com,huluim.com,hulustream.com
+video|Vimeo|vimeo.com,vimeocdn.com
+video|Dailymotion|dailymotion.com,dmcdn.net
+video|Aparat|aparat.com,aparatcdn.com
+video|Apple TV|tv.apple.com
+video|Crunchyroll|crunchyroll.com
+video|Bilibili|bilibili.com,bilivideo.com,hdslb.com
+video|Kick|kick.com
+video|Plex|plex.tv,plex.direct
+video|Namava|namava.ir
+video|Filimo|filimo.com
+video|Telewebion|telewebion.com
+
+# ---------------------------------------------------------------- Music
+music|Spotify|spotify.com,scdn.co,spotifycdn.com,spoti.fi
+music|Apple Music|music.apple.com,applemusic.com
+music|YouTube Music|music.youtube.com
+music|SoundCloud|soundcloud.com,sndcdn.com
+music|Deezer|deezer.com,dzcdn.net
+music|Tidal|tidal.com
+music|Pandora|pandora.com
+music|Anghami|anghami.com
+music|Radio Javan|radiojavan.com
+music|Shazam|shazam.com
+music|Genius|genius.com
+
+# ---------------------------------------------------------------- Gaming
+gaming|Steam|steampowered.com,steamcommunity.com,steamstatic.com,steamcontent.com,steamserver.net,steam-chat.com,steamgames.com,valvesoftware.com
+gaming|Epic Games|epicgames.com,unrealengine.com,epicgames.dev,epicgames.net
+gaming|Riot Games|riotgames.com,leagueoflegends.com,playvalorant.com,riotcdn.net
+gaming|Blizzard|blizzard.com,battle.net
+gaming|EA|ea.com,origin.com
+gaming|Ubisoft|ubisoft.com,ubi.com
+gaming|Xbox|xboxlive.com,xbox.com
+gaming|PlayStation|playstation.com,playstation.net,sonyentertainmentnetwork.com
+gaming|Nintendo|nintendo.com,nintendo.net
+gaming|Roblox|roblox.com,rbxcdn.com,robloxlabs.com
+gaming|Minecraft|minecraft.net,mojang.com
+gaming|Supercell|supercell.com,supercell.net
+gaming|Garena|garena.com
+gaming|PUBG|pubgmobile.com,krafton.com,proximabeta.com
+gaming|Call of Duty|activision.com,callofduty.com
+gaming|HoYoverse|hoyoverse.com,mihoyo.com,hoyolab.com
+gaming|FACEIT|faceit.com
+
+# ---------------------------------------------------------------- Shopping
+shopping|Amazon|amazon.com,amazon.co.uk,amazon.de,amazon.fr,amazon.in,amazon.ca,amazon.ae,amazon.co.jp,amazon.it,amazon.es,media-amazon.com,ssl-images-amazon.com
+shopping|eBay|ebay.com,ebaystatic.com,ebayimg.com
+shopping|AliExpress|aliexpress.com,alicdn.com,alibaba.com
+shopping|Temu|temu.com,kwcdn.com
+shopping|Shein|shein.com,ltwebstatic.com
+shopping|Etsy|etsy.com,etsystatic.com
+shopping|Walmart|walmart.com,walmartimages.com
+shopping|Digikala|digikala.com
+shopping|Divar|divar.ir
+shopping|Booking|booking.com,bstatic.com
+shopping|Airbnb|airbnb.com,muscache.com
+shopping|Shopify|shopify.com,myshopify.com
+
+# ---------------------------------------------------------------- News and reading
+news|BBC|bbc.com,bbc.co.uk,bbci.co.uk
+news|CNN|cnn.com
+news|The New York Times|nytimes.com,nyt.com
+news|The Guardian|theguardian.com
+news|Reuters|reuters.com
+news|DW|dw.com
+news|Iran International|iranintl.com
+news|Radio Farda|radiofarda.com
+news|VOA|voanews.com
+news|Al Jazeera|aljazeera.com
+news|Bloomberg|bloomberg.com
+news|Medium|medium.com
+news|Substack|substack.com
+news|Hacker News|ycombinator.com
+news|Zoomit|zoomit.ir
+news|Google News|news.google.com
+
+# ---------------------------------------------------------------- Development
+dev|GitHub|github.com,githubusercontent.com,github.io,githubassets.com,ghcr.io
+dev|GitLab|gitlab.com
+dev|Stack Overflow|stackoverflow.com,stackexchange.com,sstatic.net
+dev|Docker|docker.com,docker.io
+dev|npm|npmjs.org,npmjs.com
+dev|PyPI|pypi.org,pythonhosted.org
+dev|Go|golang.org,go.dev
+dev|Rust|crates.io,rust-lang.org
+dev|Vercel|vercel.com,vercel.app
+dev|Netlify|netlify.app,netlify.com
+dev|Heroku|herokuapp.com
+dev|JetBrains|jetbrains.com
+dev|VS Code|visualstudio.com,vscode-cdn.net,vsassets.io,vscode.dev
+dev|Postman|postman.com
+dev|Replit|replit.com
+dev|Kaggle|kaggle.com
+dev|Colab|colab.research.google.com
+dev|Maven|maven.org
+
+# ---------------------------------------------------------------- Search
+search|Google|google.com,google.de,google.co.uk,google.fr,google.ca,google.nl,google.com.tr,google.ae
+search|Bing|bing.com
+search|DuckDuckGo|duckduckgo.com
+search|Yahoo|yahoo.com
+search|Yandex|yandex.com,yandex.ru
+search|Baidu|baidu.com
+search|Brave Search|search.brave.com
+search|Kagi|kagi.com
+search|Ecosia|ecosia.org
+
+# ---------------------------------------------------------------- Email
+email|Gmail|mail.google.com,gmail.com,googlemail.com
+email|Outlook|outlook.com,outlook.office.com,outlook.live.com,outlook.office365.com
+email|Proton Mail|proton.me,protonmail.com,protonmail.ch
+email|Yahoo Mail|mail.yahoo.com
+email|Zoho|zoho.com
+email|Mail.ru|mail.ru
+email|Tuta|tuta.com,tutanota.com
+email|Fastmail|fastmail.com
+
+# ---------------------------------------------------------------- Work and productivity
+work|Google Workspace|docs.google.com,sheets.google.com,slides.google.com,calendar.google.com,meet.google.com,keep.google.com,chat.google.com
+work|Microsoft 365|office.com,microsoft365.com,office365.com,sharepoint.com,teams.microsoft.com,officeapps.live.com,office.net
+work|Slack|slack.com,slack-edge.com,slack-msgs.com
+work|Zoom|zoom.us,zoom.com,zoomgov.com
+work|Notion|notion.so,notion.com
+work|Atlassian|atlassian.com,atlassian.net
+work|Trello|trello.com
+work|Asana|asana.com
+work|Figma|figma.com
+work|Canva|canva.com
+work|Miro|miro.com
+work|Linear|linear.app
+work|Airtable|airtable.com
+work|Webex|webex.com
+work|Calendly|calendly.com
+
+# ---------------------------------------------------------------- Cloud storage
+cloud|Google Drive|drive.google.com,photos.google.com,drive.usercontent.google.com
+cloud|Dropbox|dropbox.com,dropboxstatic.com,dropboxapi.com
+cloud|iCloud|icloud.com,icloud-content.com
+cloud|MEGA|mega.nz,mega.io
+cloud|OneDrive|onedrive.live.com,1drv.ms,onedrive.com
+cloud|Box|box.com
+cloud|WeTransfer|wetransfer.com
+cloud|MediaFire|mediafire.com
+
+# ---------------------------------------------------------------- Finance and crypto
+finance|PayPal|paypal.com,paypalobjects.com
+finance|Stripe|stripe.com,stripe.network
+finance|Wise|wise.com
+finance|Binance|binance.com,bnbstatic.com
+finance|Coinbase|coinbase.com
+finance|Kraken|kraken.com
+finance|Bybit|bybit.com
+finance|OKX|okx.com
+finance|KuCoin|kucoin.com
+finance|TradingView|tradingview.com
+finance|CoinMarketCap|coinmarketcap.com
+finance|CoinGecko|coingecko.com
+finance|MetaMask|metamask.io
+finance|Etherscan|etherscan.io
+finance|Revolut|revolut.com
+finance|Payoneer|payoneer.com
+finance|Nobitex|nobitex.ir
+
+# ---------------------------------------------------------------- Education and reference
+education|Wikipedia|wikipedia.org,wikimedia.org,wikidata.org
+education|Coursera|coursera.org
+education|Udemy|udemy.com
+education|Khan Academy|khanacademy.org
+education|edX|edx.org
+education|Duolingo|duolingo.com
+education|Quizlet|quizlet.com
+education|Google Scholar|scholar.google.com
+education|ResearchGate|researchgate.net
+education|ScienceDirect|sciencedirect.com
+education|arXiv|arxiv.org
+education|IEEE|ieee.org
+education|Nature|nature.com
+education|JSTOR|jstor.org
+education|Sci-Hub|sci-hub.se
+education|W3Schools|w3schools.com
+education|GeeksforGeeks|geeksforgeeks.org
+education|MDN|developer.mozilla.org
+education|TED|ted.com
+education|Udacity|udacity.com
+
+# ---------------------------------------------------------------- Tools and utilities
+tools|Speedtest|speedtest.net,ookla.com,fast.com
+tools|Google Translate|translate.google.com
+tools|Google Maps|maps.google.com,maps.googleapis.com
+tools|OpenStreetMap|openstreetmap.org
+tools|Waze|waze.com
+tools|Weather|weather.com,accuweather.com
+tools|IP checkers|ipinfo.io,ifconfig.me,ip-api.com,whatismyip.com,ipify.org,myip.com,ipleak.net,browserleaks.com
+
+# ---------------------------------------------------------------- VPN and circumvention
+vpn|Tor|torproject.org
+vpn|Psiphon|psiphon3.com,psiphon.ca
+vpn|Windscribe|windscribe.com
+vpn|NordVPN|nordvpn.com,nordcdn.com
+vpn|ExpressVPN|expressvpn.com
+vpn|Proton VPN|protonvpn.com
+
+# ---------------------------------------------------------------- Ads and trackers
+ads|Google Ads|doubleclick.net,googlesyndication.com,googleadservices.com,adservice.google.com,googleads.g.doubleclick.net,admob.com
+ads|Ad networks|adnxs.com,taboola.com,outbrain.com,criteo.com,criteo.net,amazon-adsystem.com,adsrvr.org,rubiconproject.com,pubmatic.com,openx.net,moatads.com,scorecardresearch.com,applovin.com,ironsrc.com,supersonicads.com,vungle.com,chartboost.com,adcolony.com,mopub.com,inmobi.com,startapp.com,unityads.unity3d.com,mgid.com,popads.net,propellerads.com,tapsell.ir,yektanet.com,smaato.net,bidswitch.net,casalemedia.com,adform.net
+
+# ---------------------------------------------------------------- Telemetry and analytics
+telemetry|Analytics|google-analytics.com,googletagmanager.com,analytics.google.com,app-measurement.com,crashlytics.com,sentry.io,bugsnag.com,mixpanel.com,mxpnl.com,amplitude.com,segment.io,segment.com,appsflyer.com,adjust.com,adjust.io,branch.io,app.link,onesignal.com,newrelic.com,nr-data.net,datadoghq.com,hotjar.com,clarity.ms,singular.net,kochava.com,flurry.com,mc.yandex.ru,firebaselogging-pa.googleapis.com,firebaseinstallations.googleapis.com,firebaseremoteconfig.googleapis.com
+
+# ---------------------------------------------------------------- Push notifications
+push|Push|mtalk.google.com,fcm.googleapis.com,push.apple.com,push.services.mozilla.com,notify.windows.com,wns.windows.com,push.api.xiaomi.com
+
+# ---------------------------------------------------------------- Connectivity checks and time
+connectivity|Connectivity check|connectivitycheck.gstatic.com,connectivitycheck.android.com,clients3.google.com,captive.apple.com,msftconnecttest.com,msftncsi.com,detectportal.firefox.com,nmcheck.gnome.org,connectivity-check.ubuntu.com,network-test.debian.org,cp.cloudflare.com
+connectivity|Time sync|time.android.com,time.windows.com,time.apple.com,pool.ntp.org,time.google.com,time.cloudflare.com,ntp.org
+
+# ---------------------------------------------------------------- DNS
+dns|Public DNS|dns.google,dns.quad9.net,cloudflare-dns.com,one.one.one.one,dns.adguard.com,doh.opendns.com,dns.nextdns.io,mozilla.cloudflare-dns.com
+cidr|dns|Public DNS|8.8.8.8/32,8.8.4.4/32,1.1.1.1/32,1.0.0.1/32,9.9.9.9/32,149.112.112.112/32,208.67.222.222/32,208.67.220.220/32,94.140.14.14/32,94.140.15.15/32,2001:4860:4860::8888/128,2001:4860:4860::8844/128,2606:4700:4700::1111/128,2606:4700:4700::1001/128
+
+# ---------------------------------------------------------------- Software updates and app stores
+update|Windows Update|windowsupdate.com,update.microsoft.com,delivery.mp.microsoft.com,storeedge.microsoft.com
+update|Apple updates|swcdn.apple.com,swscan.apple.com,swdist.apple.com,mesu.apple.com,updates.cdn-apple.com,appldnld.apple.com,gdmf.apple.com,apps.apple.com,itunes.apple.com,mzstatic.com
+update|Google updates|update.googleapis.com,dl.google.com,edgedl.me.gvt1.com,gvt1.com,gvt2.com,play.google.com,android.clients.google.com,play.googleapis.com,play-fe.googleapis.com,ota.googlezip.net
+update|Linux repositories|archive.ubuntu.com,security.ubuntu.com,deb.debian.org,ftp.debian.org,fedoraproject.org,archlinux.org,snapcraft.io,flathub.org,ubuntu.com,debian.org
+update|Mozilla updates|aus5.mozilla.org,download.mozilla.org,content-signature-2.cdn.mozilla.net
+
+# ---------------------------------------------------------------- Operating system services
+system|Apple services|apple.com,icloud.com.cn,cdn-apple.com,apple-dns.net
+system|Microsoft services|microsoft.com,live.com,microsoftonline.com,msauth.net,msftauth.net,windows.com,windows.net,bing.net,msedge.net,microsoft.com.akadns.net,skype.net,data.microsoft.com
+system|Google services|accounts.google.com,clients1.google.com,clients2.google.com,clients4.google.com,clients6.google.com,gstatic.com,ggpht.com,googleusercontent.com,apis.google.com
+system|Samsung services|samsungcloudsolution.com,samsungapps.com,samsungosp.com,samsungdm.com,samsung.com,samsungcloud.com
+system|Xiaomi services|miui.com,xiaomi.com,mi.com,xiaomi.net,mi-img.com,miwifi.com
+system|Huawei services|hicloud.com,dbankcloud.com,huawei.com,hihonor.com
+system|Oppo/Vivo services|heytapmobi.com,oppomobile.com,vivo.com.cn,coloros.com
+
+# ---------------------------------------------------------------- CDN and infrastructure
+cdn|Cloudflare|cloudflare.com,cloudflare.net,cloudflareinsights.com,workers.dev,pages.dev
+cdn|Akamai|akamaihd.net,akamai.net,akamaiedge.net,edgekey.net,edgesuite.net,akadns.net
+cdn|Fastly|fastly.net,fastlylb.net,fastly.com
+cdn|Amazon CloudFront|cloudfront.net
+cdn|AWS|amazonaws.com,awsstatic.com,aws.amazon.com
+cdn|Azure|azureedge.net,azurefd.net,azurewebsites.net,blob.core.windows.net,trafficmanager.net
+cdn|Google APIs|googleapis.com,googleapis.cn,googletagservices.com
+cdn|Open CDNs|jsdelivr.net,unpkg.com,cdnjs.com,cdnjs.cloudflare.com,bootstrapcdn.com,fontawesome.com,fonts.googleapis.com,fonts.gstatic.com
+cdn|Other CDNs|cdn77.org,b-cdn.net,stackpathcdn.com,edgecastcdn.net,llnwd.net,gcdn.co,gcorelabs.com,imgix.net,cloudinary.com
+
+# ---------------------------------------------------------------- Direct IP ranges
+cidr|messaging|Telegram|149.154.160.0/20,91.108.4.0/22,91.108.8.0/22,91.108.12.0/22,91.108.16.0/22,91.108.56.0/22,91.105.192.0/23,95.161.64.0/20,185.76.151.0/24,2001:67c:4e8::/48,2001:b28:f23d::/48,2001:b28:f23f::/48,2a0a:f280::/32
+
+# ================================================================ Device fingerprints
+# Operating system (weight 3 = specific, 1 = weak hint)
+hint|os|Windows|3|windowsupdate.com,msftconnecttest.com,msftncsi.com,settings-win.data.microsoft.com,v10.events.data.microsoft.com,vortex-win.data.microsoft.com,watson.telemetry.microsoft.com,wdcp.microsoft.com,activity.windows.com,self.events.data.microsoft.com,delivery.mp.microsoft.com,time.windows.com,notify.windows.com,wns.windows.com,storeedge.microsoft.com
+hint|os|Android|3|connectivitycheck.gstatic.com,connectivitycheck.android.com,android.clients.google.com,android.googleapis.com,play-fe.googleapis.com,play.googleapis.com,time.android.com,ota.googlezip.net,mtalk.google.com
+hint|os|Android|1|clients4.google.com,fcm.googleapis.com,app-measurement.com,firebaseinstallations.googleapis.com
+hint|os|iOS|3|api.smoot.apple.com,weather-data.apple.com,gspe35-ssl.ls.apple.com,gspe1-ssl.ls.apple.com,gsp64-ssl.ls.apple.com
+hint|os|macOS|3|swscan.apple.com,swdist.apple.com,swcdn.apple.com,valid.apple.com,xp.apple.com
+hint|os|Apple|1|push.apple.com,captive.apple.com,icloud.com,mesu.apple.com,gdmf.apple.com,time.apple.com,apple.com,cdn-apple.com
+hint|os|Linux|3|archive.ubuntu.com,security.ubuntu.com,connectivity-check.ubuntu.com,deb.debian.org,ftp.debian.org,network-test.debian.org,fedoraproject.org,nmcheck.gnome.org,archlinux.org,snapcraft.io,flathub.org
+hint|os|Samsung Android|2|samsungcloudsolution.com,samsungapps.com,samsungosp.com,samsungdm.com,samsungcloud.com
+hint|os|Xiaomi Android|2|miui.com,xiaomi.net,mi-img.com,miwifi.com,push.api.xiaomi.com
+hint|os|Huawei|2|hicloud.com,dbankcloud.com,hihonor.com
+hint|os|Oppo/Vivo Android|2|heytapmobi.com,oppomobile.com,coloros.com,vivo.com.cn
+
+# Browser
+hint|browser|Chrome|3|update.googleapis.com,optimizationguide-pa.googleapis.com,clientservices.googleapis.com,chromewebstore.google.com,chrome.google.com,edgedl.me.gvt1.com,gvt1.com,gvt2.com,clients2.google.com,safebrowsing.googleapis.com
+hint|browser|Firefox|3|detectportal.firefox.com,firefox.settings.services.mozilla.com,push.services.mozilla.com,aus5.mozilla.org,content-signature-2.cdn.mozilla.net,incoming.telemetry.mozilla.org,location.services.mozilla.com,tracking-protection.cdn.mozilla.net,mozilla.net,firefox.com
+hint|browser|Edge|3|edge.microsoft.com,msedge.net,edgeservices.bing.com,config.edge.skype.com,smartscreen.microsoft.com
+hint|browser|Brave|3|brave.com,go-updater.brave.com,laptop-updates.brave.com,variations.brave.com
+hint|browser|Opera|3|opera.com,opera-api.com,operacdn.com,opera-api2.com
+hint|browser|Yandex Browser|3|browser.yandex.net,yandex.net
+hint|browser|Vivaldi|3|vivaldi.com,vivaldi.net
+hint|browser|Safari|1|gateway.icloud.com,configuration.ls.apple.com
