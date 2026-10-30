@@ -22,6 +22,9 @@ type TrafficRec struct {
 
 // Batch is what an agent node sends to the main server.
 type Batch struct {
+	// ID makes retries idempotent: the server ignores a batch id it has
+	// already processed.
+	ID      string       `json:"id,omitempty"`
 	Node    string       `json:"node"`
 	Version string       `json:"version,omitempty"`
 	Panel   string       `json:"panel,omitempty"`

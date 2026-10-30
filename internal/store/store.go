@@ -20,6 +20,9 @@ import (
 
 const schemaVersion = 1
 
+// SchemaVersion is the database schema this build reads and writes.
+const SchemaVersion = schemaVersion
+
 // GeoFunc resolves an IP address to country code, ASN and organisation.
 type GeoFunc func(ip string) (country string, asn int, org string)
 

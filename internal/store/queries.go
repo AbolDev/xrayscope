@@ -229,6 +229,22 @@ func (s *Store) IPByAddr(ctx context.Context, addr string) (IP, error) {
 	return ip, err
 }
 
+// UserIPFirstHour returns the first hour slot in which a user was seen on an
+// address (0 if never).
+func (s *Store) UserIPFirstHour(ctx context.Context, userID int64, ip string) (int64, error) {
+	var h sql.NullInt64
+	err := s.r.QueryRowContext(ctx, `SELECT MIN(a.hour) FROM act a JOIN ips i ON i.id=a.ip_id WHERE a.user_id=? AND i.ip=?`, userID, ip).Scan(&h)
+	return h.Int64, err
+}
+
+// UserCountryFirstHour returns the first hour slot in which a user was seen
+// in a country (0 if never).
+func (s *Store) UserCountryFirstHour(ctx context.Context, userID int64, country string) (int64, error) {
+	var h sql.NullInt64
+	err := s.r.QueryRowContext(ctx, `SELECT MIN(a.hour) FROM act a JOIN ips i ON i.id=a.ip_id WHERE a.user_id=? AND i.country=?`, userID, country).Scan(&h)
+	return h.Int64, err
+}
+
 // SvcRow is time spent on one service in one hour.
 type SvcRow struct {
 	Hour      int64

@@ -61,6 +61,21 @@ func localDay(loc *time.Location, minute int64) int64 {
 	return floorDiv(sec+zoneOffset(loc, sec), 86400)
 }
 
+// LocalDay is the exported form of localDay.
+func LocalDay(loc *time.Location, minute int64) int64 { return localDay(loc, minute) }
+
+// LocalNoon returns the unix minute of 12:00 local time on a day index.
+func LocalNoon(loc *time.Location, day int64) int64 { return localNoon(loc, day) }
+
+// ParseDay converts YYYY-MM-DD into a day index.
+func ParseDay(s string) (int64, error) {
+	t, err := time.Parse("2006-01-02", s)
+	if err != nil {
+		return 0, err
+	}
+	return t.Unix() / 86400, nil
+}
+
 // DayString formats a day index as YYYY-MM-DD.
 func DayString(day int64) string {
 	return time.Unix(day*86400, 0).UTC().Format("2006-01-02")
