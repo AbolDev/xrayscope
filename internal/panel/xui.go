@@ -17,7 +17,8 @@ import (
 
 // XUI reads the 3x-ui SQLite database (read-only).
 type XUI struct {
-	dbPath string
+	dbPath         string
+	runtimeConfigs []string // generated Xray configs to consult first (tests)
 }
 
 // NewXUI creates the adapter. dbPath is usually /etc/x-ui/x-ui.db.
@@ -148,12 +149,43 @@ func (x *XUI) AccessLog(ctx context.Context) (LogInfo, error) {
 		_ = json.Unmarshal([]byte(tmpl.String), &cfg)
 	}
 	info.Setting = cfg.Log.Access
+	// The config Xray was actually started with is authoritative: 3x-ui
+	// rewrites relative paths of the template (to /var/log/x-ui, ...).
+	if rt, ok := x.runtimeAccessLog(); ok {
+		info.Setting = rt
+	}
 	if info.Setting == "" || strings.EqualFold(info.Setting, "none") {
 		info.Disabled = true
 		return info, nil
 	}
 	info.Path, info.Tried = resolveLogPath(info.Setting)
 	return info, nil
+}
+
+// runtimeAccessLog reads log.access from the generated Xray config.
+func (x *XUI) runtimeAccessLog() (string, bool) {
+	paths := x.runtimeConfigs
+	if len(paths) == 0 {
+		paths = []string{"/usr/local/x-ui/bin/config.json"}
+		if dir := os.Getenv("XUI_BIN_FOLDER"); dir != "" {
+			paths = append([]string{filepath.Join(dir, "config.json")}, paths...)
+		}
+	}
+	for _, p := range paths {
+		b, err := os.ReadFile(p)
+		if err != nil {
+			continue
+		}
+		var c struct {
+			Log struct {
+				Access string `json:"access"`
+			} `json:"log"`
+		}
+		if json.Unmarshal(b, &c) == nil {
+			return c.Log.Access, true
+		}
+	}
+	return "", false
 }
 
 // resolveLogPath finds an access log named by a (possibly relative) setting.
@@ -163,7 +195,7 @@ func resolveLogPath(setting string) (string, []string) {
 		cands = []string{setting}
 	} else {
 		rel := strings.TrimPrefix(filepath.ToSlash(setting), "./")
-		for _, dir := range []string{"/usr/local/x-ui/bin", "/usr/local/x-ui", "/var/log/x-ui", "/etc/x-ui"} {
+		for _, dir := range []string{"/var/log/x-ui", "/usr/local/x-ui/bin", "/usr/local/x-ui", "/etc/x-ui"} {
 			cands = append(cands, filepath.Join(dir, rel))
 		}
 	}

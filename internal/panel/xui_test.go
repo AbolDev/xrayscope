@@ -3,6 +3,7 @@ package panel
 import (
 	"context"
 	"database/sql"
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -80,6 +81,29 @@ func TestXUIAccessLogAbsolute(t *testing.T) {
 	}
 	if info.Disabled || filepath.ToSlash(info.Path) != filepath.ToSlash(log) {
 		t.Fatalf("info = %+v", info)
+	}
+}
+
+func TestXUIAccessLogPrefersRuntimeConfig(t *testing.T) {
+	dir := t.TempDir()
+	real := filepath.Join(dir, "access.log")
+	writeFile(t, real)
+	rt := filepath.Join(dir, "config.json")
+	if err := os.WriteFile(rt, []byte(`{"log":{"access":"`+filepath.ToSlash(real)+`"}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	// the template still says "./access.log", as 3x-ui stores it
+	x := NewXUI(fixtureDB(t, `{"log":{"access":"./access.log"}}`))
+	x.runtimeConfigs = []string{rt}
+	info, err := x.AccessLog(context.Background())
+	if err != nil || filepath.ToSlash(info.Path) != filepath.ToSlash(real) {
+		t.Fatalf("info = %+v err=%v", info, err)
+	}
+	// "none" in the config Xray runs with disables collection even if the template names a file
+	os.WriteFile(rt, []byte(`{"log":{"access":"none"}}`), 0o600)
+	info, _ = x.AccessLog(context.Background())
+	if !info.Disabled {
+		t.Fatalf("expected disabled: %+v", info)
 	}
 }
 
