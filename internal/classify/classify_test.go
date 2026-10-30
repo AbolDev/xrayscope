@@ -41,6 +41,17 @@ func TestCustomRuleOverrides(t *testing.T) {
 	}
 }
 
+func TestCDN(t *testing.T) {
+	for ip, want := range map[string]string{
+		"172.67.10.5": "Cloudflare", "104.21.3.9": "Cloudflare", "2606:4700::6810:1": "Cloudflare",
+		"37.32.17.2": "", "8.8.8.8": "", "not an ip": "",
+	} {
+		if got := CDN(ip); got != want {
+			t.Errorf("CDN(%s) = %q, want %q", ip, got, want)
+		}
+	}
+}
+
 func TestHints(t *testing.T) {
 	c := New(nil)
 	hs := c.Hints("settings-win.data.microsoft.com")

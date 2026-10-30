@@ -285,7 +285,7 @@ function network(r) {
   ipc.append(r.ips.length ? h('div', { class: 'table-wrap' }, h('table', null,
     h('thead', null, h('tr', null, ['col.ip', 'col.country', 'col.network', 'col.first', 'col.last', 'col.active', 'col.sessions', 'col.device'].map((k, i) => h('th', { class: i >= 5 && i <= 6 ? 'num' : '' }, t(k))))),
     h('tbody', null, r.ips.map((ip) => h('tr', null,
-      h('td', null, h('span', { class: 'status-dot' + (ip.online ? ' on' : ''), style: { marginInlineEnd: '8px' } }), h('a', { class: 'mono', href: '#/ips?ip=' + encodeURIComponent(ip.ip) }, ip.ip)),
+      h('td', null, h('span', { class: 'status-dot' + (ip.online ? ' on' : ''), style: { marginInlineEnd: '8px' } }), h('a', { class: 'mono', href: '#/ips?ip=' + encodeURIComponent(ip.ip) }, ip.ip), ip.cdn ? h('span', { class: 'chip warn', style: { marginInlineStart: '8px' }, title: t('cdn.hint') }, ip.cdn) : null),
       h('td', null, ip.country ? flag(ip.country) + ' ' + ip.country : '—'),
       h('td', { class: 'muted', style: { maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis' }, title: ip.org }, ip.org || '—'),
       h('td', { class: 'muted' }, fmtDateTime(ip.first)),

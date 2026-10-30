@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"xrayscope/internal/analytics"
+	"xrayscope/internal/classify"
 	"xrayscope/internal/live"
 	"xrayscope/internal/store"
 )
@@ -55,6 +56,7 @@ type IPInfo struct {
 	Minutes  int64              `json:"minutes"`
 	Sessions int                `json:"sessions"`
 	Online   bool               `json:"online"`
+	CDN      string             `json:"cdn,omitempty"` // set when this is a CDN edge, not the client
 	Devices  []analytics.Device `json:"devices"`
 }
 
@@ -263,6 +265,7 @@ func (e *Env) fillIPs(ctx ctxT, r *UserReport, rows []store.ActRow, rg Range) er
 			Minutes:  int64(len(mins)),
 			Sessions: len(analytics.Sessions(mins, e.GapMin)),
 			Online:   online[ip.IP],
+			CDN:      classify.CDN(ip.IP),
 			Devices:  devs,
 		}
 		for _, d := range info.Devices {

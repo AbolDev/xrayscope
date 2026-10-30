@@ -34,6 +34,10 @@ export async function systemPage(ctx) {
     kpi('database', '', bytes(st.db.size_bytes), t('sys.db_size'), t('sys.rows', { n: num(st.db.act_rows + st.db.visit_rows) })),
     kpi('users', '', num(st.db.users), t('sys.users'), t('sys.ips_domains', { a: num(st.db.ips), b: num(st.db.domains) })),
     kpi('clock', 'warn', dur(Math.floor(st.uptime / 60)), t('sys.uptime'), 'v' + st.version)));
+  if (st.cdn_ips > 0 && st.cdn_ips * 2 >= st.online_ips) {
+    page.append(h('div', { class: 'alert warn' }, h('b', null, t('sys.cdn_title')), h('div', { style: { marginTop: '4px' } }, t('sys.cdn_text')),
+      h('div', { class: 'code', style: { marginTop: '8px' } }, 'CF-Connecting-IP\nX-Real-IP\nX-Forwarded-For')));
+  }
   page.append(h('div', { class: 'grid g2' }, logCard, panelCard));
   if (st.db.first_hour) {
     page.append(h('div', { class: 'card' }, h('h2', null, t('sys.data_span')), h('div', null, fmtDate(st.db.first_hour * 3600) + ' → ' + fmtDate(st.db.last_hour * 3600 + 3599))));

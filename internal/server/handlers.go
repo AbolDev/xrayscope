@@ -123,9 +123,14 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		ns = append(ns, nodeStatus{n, n.LastSeen > 0 && time.Since(time.Unix(n.LastSeen, 0)) < time.Duration(cfg.Alerts.NodeOffline.Value+1)*time.Minute})
 	}
 	online := a.Live.Online(time.Duration(cfg.OnlineWindowMin) * time.Minute)
-	ips := 0
+	ips, behindCDN := 0, 0
 	for _, o := range online {
 		ips += len(o.Conns)
+		for _, c := range o.Conns {
+			if classify.CDN(c.IP) != "" {
+				behindCDN++
+			}
+		}
 	}
 	list, _ := backup.List(a.Cfg.BackupDir())
 	var last *backup.Info
@@ -147,6 +152,7 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		"db":         st,
 		"online":     len(online),
 		"online_ips": ips,
+		"cdn_ips":    behindCDN,
 		"nodes":      ns,
 		"backups":    map[string]any{"count": len(list), "last": last, "pending_restore": backup.HasPending(a.Cfg.DataDir)},
 		"telegram":   a.Bot.Enabled(),
@@ -434,6 +440,7 @@ func (s *Server) handleOnline(w http.ResponseWriter, r *http.Request) {
 		LastSeen int64  `json:"last_seen"`
 		Country  string `json:"country"`
 		Org      string `json:"org"`
+		CDN      string `json:"cdn,omitempty"`
 	}
 	type row struct {
 		UserID   int64  `json:"user_id"`
@@ -455,7 +462,7 @@ func (s *Server) handleOnline(w http.ResponseWriter, r *http.Request) {
 	for _, o := range online {
 		x := row{UserID: o.UserID, Email: o.Email, LastSeen: o.LastSeen, LimitIP: limit[o.UserID]}
 		for _, c := range o.Conns {
-			cc := conn{IP: c.IP, LastSeen: c.LastSeen}
+			cc := conn{IP: c.IP, LastSeen: c.LastSeen, CDN: classify.CDN(c.IP)}
 			if ip, err := s.app.Store.IPByAddr(r.Context(), c.IP); err == nil {
 				cc.Country, cc.Org = ip.Country, ip.Org
 			}

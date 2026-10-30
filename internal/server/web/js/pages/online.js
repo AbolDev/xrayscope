@@ -22,6 +22,7 @@ export async function onlinePage() {
         h('span', { class: 'chip' }, icon('device'), num(u.conns.length) + (u.limit_ip ? ' / ' + num(u.limit_ip) : ''))),
       h('div', { class: 'ips' }, u.conns.map((c) => h('div', null,
         h('a', { class: 'mono', href: '#/ips?ip=' + encodeURIComponent(c.ip) }, c.ip),
+        c.cdn ? h('span', { class: 'chip warn', title: t('cdn.hint') }, c.cdn) : null,
         h('span', null, flag(c.country) + ' ' + (c.country || '')),
         h('span', { class: 'faint', style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '180px' } }, c.org || ''),
         h('span', { class: 'faint', style: { marginInlineStart: 'auto' } }, ago(c.last_seen))))));
