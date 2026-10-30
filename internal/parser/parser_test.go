@@ -34,6 +34,7 @@ func TestParseLine(t *testing.T) {
 		{name: "no email", line: "2024/05/01 10:20:30 from 1.2.3.4:5 accepted tcp:a.com:443 [a >> b]", ok: false},
 		{name: "api traffic", line: "2024/05/01 10:20:30 from 127.0.0.1:5 accepted tcp:127.0.0.1:62789 [api -> api] email: x", ok: false},
 		{name: "rejected", line: "2024/05/01 10:20:30 from 1.2.3.4:5 rejected  proxy/vless/encoding: invalid user", ok: false},
+		{name: "source is not an address", line: "2024/05/01 10:20:30 from d tcp:127.0.0.1:62789 accepted tcp:a.com:443 [a >> b] email: u", ok: false},
 		{name: "garbage", line: "hello world this is not a log line", ok: false},
 		{name: "short", line: "x", ok: false},
 	}

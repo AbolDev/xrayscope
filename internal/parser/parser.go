@@ -7,6 +7,7 @@
 package parser
 
 import (
+	"net/netip"
 	"strconv"
 	"strings"
 	"time"
@@ -56,8 +57,8 @@ func ParseLine(line string, loc *time.Location) (e Entry, ok bool) {
 
 	_, src = splitNetwork(src)
 	srcIP, _ := splitHostPort(src)
-	if srcIP == "" {
-		return e, false
+	if _, err := netip.ParseAddr(srcIP); err != nil {
+		return e, false // not a client address: a different kind of log line
 	}
 	e.SrcIP = srcIP
 
