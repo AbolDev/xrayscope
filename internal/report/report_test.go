@@ -138,6 +138,9 @@ func TestTimelineAndOverview(t *testing.T) {
 	if o.Totals.UsersActive != 1 || len(o.Categories) == 0 || len(o.Activity) == 0 {
 		t.Fatalf("overview = %+v", o.Totals)
 	}
+	if o.Prev.UsersActive != 1 || o.Prev.Minutes == 0 {
+		t.Fatalf("previous period missing: %+v", o.Prev)
+	}
 	rows, err := e.Users(context.Background(), Range{From: now - 5*86400, To: now})
 	if err != nil || len(rows) != 1 || rows[0].TopCategory != "ai" && rows[0].TopCategory != "social" && rows[0].TopCategory != "video" {
 		t.Fatalf("users = %+v err=%v", rows, err)

@@ -183,8 +183,9 @@ export function setRange(key, custom) {
 
 // ---------------------------------------------------------------- misc
 
-// Data colours: one accent and a lightness ramp of it, never a rainbow.
-export const ramp = (i) => `var(--d${Math.min(5, Math.max(1, i + 1))})`;
+// Data colours: the accent marks what matters (the first, largest item) and
+// everything else is a step of the neutral ramp. Never a rainbow.
+export const ramp = (i) => ['var(--accent)', 'var(--n1)', 'var(--n2)', 'var(--n3)', 'var(--n4)'][Math.min(4, Math.max(0, i))];
 
 // tag renders a short status label (text, never a bare coloured dot).
 export const tag = (text, tone, title) => h('span', { class: 'tag' + (tone ? ' ' + tone : ''), title }, text);

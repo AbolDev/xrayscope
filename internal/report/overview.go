@@ -21,6 +21,17 @@ type Overview struct {
 	Heatmap    analytics.Heat       `json:"heatmap"`
 	Countries  []CountryStat        `json:"countries"`
 	Online     []live.Online        `json:"online"`
+	// Prev holds the same headline figures for the period of equal length
+	// just before the range, so changes can be shown against it.
+	Prev PrevTotals `json:"prev"`
+}
+
+// PrevTotals are the headline figures of the preceding period.
+type PrevTotals struct {
+	UsersActive int   `json:"users_active"`
+	Up          int64 `json:"up"`
+	Down        int64 `json:"down"`
+	Minutes     int64 `json:"minutes"`
 }
 
 // OverviewTotals are the headline numbers.
@@ -178,6 +189,27 @@ func (e *Env) Overview(ctx ctxT, rg Range) (*Overview, error) {
 	o.Services = head(o.Services, 15)
 
 	o.Heatmap = analytics.Heatmap(rows, e.Loc, true)
+
+	// the period before this one, for "vs previous" figures
+	span := rg.To - rg.From
+	prev := Range{From: rg.From - span, To: rg.From}
+	if o.Prev.Up, o.Prev.Down, err = e.TotalTraffic(ctx, 0, prev); err != nil {
+		return nil, err
+	}
+	prevRows, err := e.Store.Act(ctx, 0, prev.fromHour(), prev.toHour())
+	if err != nil {
+		return nil, err
+	}
+	prevUsers := map[int64]bool{}
+	pm := map[uh]int64{}
+	for _, r := range clipAct(prevRows, prev) {
+		prevUsers[r.UserID] = true
+		pm[uh{r.UserID, r.Hour}] |= r.Mask
+	}
+	for _, m := range pm {
+		o.Prev.Minutes += int64(analytics.PopCount(m))
+	}
+	o.Prev.UsersActive = len(prevUsers)
 
 	// countries
 	ids := make([]int64, 0, len(ipIDs))

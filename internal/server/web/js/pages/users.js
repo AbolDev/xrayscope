@@ -78,9 +78,11 @@ function row(u) {
   const pct = u.quota > 0 ? Math.min(100, (used / u.quota) * 100) : 0;
   const expired = u.expiry > 0 && u.expiry * 1000 < Date.now();
   return h('tr', { class: 'click', onclick: () => { location.hash = '#/users/' + u.id; } },
-    h('td', null, h('a', { href: '#/users/' + u.id, onclick: (e) => e.stopPropagation(), style: { fontWeight: 600, color: 'var(--ink)' } }, u.email),
-      ' ', u.online ? tag(t('online'), 'ok') : null, !u.enabled ? tag(t('disabled'), 'bad') : null),
-    h('td', null, sparkline(u.spark || [], { label: t('col.presence') })),
+    h('td', null, h('span', { class: 'row', style: { gap: '8px', flexWrap: 'nowrap' } },
+      h('span', { class: 'dot' + (u.online ? ' live' : ''), role: 'img', 'aria-label': u.online ? t('online') : t('offline'), title: u.online ? t('online') : t('offline') }),
+      h('a', { href: '#/users/' + u.id, onclick: (e) => e.stopPropagation(), style: { fontWeight: 500 } }, u.email),
+      !u.enabled ? tag(t('disabled'), 'bad') : null)),
+    h('td', null, sparkline(u.spark || [], { label: t('col.presence'), live: u.online })),
     h('td', { class: 'muted' }, u.online ? t('online_n', { n: num(u.online_ips) }) : ago(u.last_seen)),
     h('td', { class: 'num' }, u.down ? bytes(u.down) : h('span', { class: 'faint' }, '0')),
     h('td', { class: 'num' }, u.up ? bytes(u.up) : h('span', { class: 'faint' }, '0')),

@@ -153,7 +153,7 @@ export function parts(items, opts = {}) {
     style: { width: (it.value / total) * 100 + '%', background: ramp(Math.min(i, 4)) },
     title: `${it.label}: ${fmt(it.value)} (${num((it.value / total) * 100, 1)}%)`,
   })));
-  const table = h('table', { class: 'tbl' },
+  const table = h('table', { class: 'tbl compact' },
     h('tbody', null, items.map((it, i) => h('tr', null,
       h('td', null, h('i', { class: 'swatch', style: { background: ramp(Math.min(i, 4)) } }), it.label),
       h('td', { class: 'num' }, fmt(it.value)),
@@ -167,7 +167,7 @@ export function sparkline(values, opts = {}) {
   const max = Math.max(...values, 1);
   const n = values.length;
   const bw = w / n;
-  const s = svg('svg', { class: 'spark', width: w, height: hgt, viewBox: `0 0 ${w} ${hgt}`, role: 'img', 'aria-label': opts.label || '' });
+  const s = svg('svg', { class: 'spark' + (opts.live ? ' live' : ''), width: w, height: hgt, viewBox: `0 0 ${w} ${hgt}`, role: 'img', 'aria-label': opts.label || '' });
   values.forEach((v, i) => {
     const bh = v > 0 ? Math.max(2, (v / max) * hgt) : 2;
     s.append(svg('rect', { class: v > 0 ? '' : 'off', x: i * bw + 0.5, y: hgt - bh, width: Math.max(1, bw - 1), height: bh }));
@@ -190,7 +190,7 @@ export function heatmap(matrix, opts = {}) {
     for (let hr = 0; hr < 24; hr++) {
       const v = matrix[wd][hr];
       const a = max > 0 ? v / max : 0;
-      const cell = h('div', { class: 'cell', style: { background: v > 0 ? `color-mix(in srgb, var(--accent) ${Math.round(14 + a * 86)}%, var(--panel-2))` : '' } });
+      const cell = h('div', { class: 'cell', style: { background: v > 0 ? `color-mix(in srgb, var(--accent) ${Math.round(14 + a * 86)}%, var(--n4))` : '' } });
       cell.addEventListener('mouseenter', () => {
         const r = cell.getBoundingClientRect(), g = grid.getBoundingClientRect();
         tip.show(r.left - g.left + r.width / 2, r.top - g.top - 4, [{ text: `${names(wd)} ${String(hr).padStart(2, '0')}:00, ${(opts.fmt || ((x) => dur(x)))(v)}` }]);
@@ -210,12 +210,12 @@ export function strip(str, startSec) {
   const H = 40;
   const wrap = h('div', { class: 'chart strip-box', style: { height: H + 20 + 'px' } });
   const tip = attachTip(wrap);
-  const colors = { 1: 'var(--d3)', 2: 'var(--d1)' };
+  const colors = { 1: 'var(--n2)', 2: 'var(--accent)' };
   function draw() {
     const W = Math.max(280, wrap.clientWidth);
     wrap.querySelectorAll('svg').forEach((x) => x.remove());
     const s = svg('svg', { width: W, height: H + 20, viewBox: `0 0 ${W} ${H + 20}` });
-    s.append(svg('rect', { x: 0, y: 0, width: W, height: H, rx: 4, fill: 'var(--panel-2)' }));
+    s.append(svg('rect', { x: 0, y: 0, width: W, height: H, rx: 4, fill: 'var(--raised)' }));
     const mw = W / n;
     let i = 0;
     while (i < n) {

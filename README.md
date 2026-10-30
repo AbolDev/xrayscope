@@ -150,4 +150,4 @@ See [docs/PRIVACY.md](docs/PRIVACY.md). In short: only the administrator can log
 
 ## License
 
-[MIT](LICENSE). The bundled Vazirmatn font is under the SIL Open Font License (see `internal/server/web/fonts/OFL.txt`).
+[MIT](LICENSE). The bundled Geist, Geist Mono and Vazirmatn fonts are under the SIL Open Font License (licences in `internal/server/web/fonts/`).

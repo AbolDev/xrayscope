@@ -38,8 +38,8 @@ function header(u, online, id, rg, ctx) {
     h('div', { class: 'row', style: { gap: '14px', alignItems: 'flex-start' } },
       h('a', { class: 'btn icon', href: '#/users', title: t('back'), 'aria-label': t('back'), style: { transform: isFa() ? 'none' : 'scaleX(-1)' } }, icon('chevron')),
       h('div', { class: 'grow' },
-        h('div', { style: { fontSize: 'var(--t-xl)', fontWeight: 650 } }, u.email, ' ',
-          online ? tag(t('online_n', { n: num(online.conns.length) }), 'ok') : tag(t('offline')), !u.enabled ? [' ', tag(t('disabled'), 'bad')] : null),
+        h('div', { class: 'row', style: { gap: '8px', fontSize: 'var(--t-xl)', fontWeight: 500 } }, h('span', { class: 'dot' + (online ? ' live' : ''), role: 'img', 'aria-label': online ? t('online') : t('offline') }), u.email,
+          online ? tag(t('online_n', { n: num(online.conns.length) }), 'ok') : tag(t('offline')), !u.enabled ? tag(t('disabled'), 'bad') : null),
         h('div', { class: 'muted small' }, t('last_seen_at', { t: u.last_seen ? ago(u.last_seen) : '-' })),
         u.first_seen ? h('div', { class: 'muted small' }, t('first_seen_at', { d: fmtDate(u.first_seen) })) : null),
       u.quota > 0 ? h('div', { style: { minWidth: '180px' } },
@@ -87,8 +87,8 @@ function summary(r) {
     timeChart(tc, {
       from: r.range.from, to: r.range.to, bucket: r.traffic.bucket, yFmt: bytes, labelShift: r.traffic.bucket === 86400 ? 43200 : 0,
       series: [
-        { label: t('download'), color: 'var(--d1)', points: r.traffic.points.map((p) => ({ t: p.t, v: p.down })) },
-        { label: t('upload'), color: 'var(--d3)', points: r.traffic.points.map((p) => ({ t: p.t, v: p.up })) },
+        { label: t('download'), color: 'var(--accent)', points: r.traffic.points.map((p) => ({ t: p.t, v: p.down })) },
+        { label: t('upload'), color: 'var(--n2)', points: r.traffic.points.map((p) => ({ t: p.t, v: p.up })) },
       ],
     });
   } else tc.append(empty(t('no_traffic'), t('no_traffic_hint')));
@@ -101,7 +101,7 @@ function summary(r) {
   const keys = Object.keys(r.favorites).sort((x, y) => (r.favorites[y][0]?.minutes || 0) - (r.favorites[x][0]?.minutes || 0));
   const fav = keys.length
     ? h('div', { class: 'interests' }, keys.map((k) => h('div', { class: 'interest' }, h('div', { class: 't' }, catName(k)),
-      r.favorites[k].map((s) => h('div', { class: 's' }, h('b', { style: { fontWeight: 600 } }, s.service), h('span', null, dur(s.minutes)))))))
+      r.favorites[k].map((s) => h('div', { class: 's' }, h('b', { style: { fontWeight: 500 } }, s.service), h('span', null, dur(s.minutes)))))))
     : empty(t('us.no_interests'), t('us.no_interests_hint'));
   page.append(panel(t('us.interests'), fav, t('us.interests_hint')));
 
@@ -114,8 +114,8 @@ function summary(r) {
       from: dateStrToSec(daily[0].date) - 43200, to: dateStrToSec(daily[daily.length - 1].date) + 43200, bucket: 86400, labelShift: 43200, height: 190,
       yFmt: (v) => num(v / 60, 1) + (isFa() ? ' ' + t('u.hour') : 'h'),
       series: [
-        { label: t('us.interactive'), color: 'var(--d1)', points: pts((d) => d.interactive) },
-        { label: t('us.background'), color: 'var(--d4)', points: pts((d) => Math.max(0, d.online - d.interactive)) },
+        { label: t('us.interactive'), color: 'var(--accent)', points: pts((d) => d.interactive) },
+        { label: t('us.background'), color: 'var(--n3)', points: pts((d) => Math.max(0, d.online - d.interactive)) },
       ],
     });
   } else dc.append(empty(t('no_data')));
@@ -126,8 +126,8 @@ function summary(r) {
     timeChart(hc, {
       from: r.range.from, to: r.range.to, bucket: 3600, height: 180, yFmt: (v) => num(v),
       series: [
-        { label: t('us.interactive'), color: 'var(--d1)', points: a.hourly.map((p) => ({ t: p.hour * 3600, v: p.interactive })) },
-        { label: t('us.background'), color: 'var(--d4)', points: a.hourly.map((p) => ({ t: p.hour * 3600, v: Math.max(0, p.online - p.interactive) })) },
+        { label: t('us.interactive'), color: 'var(--accent)', points: a.hourly.map((p) => ({ t: p.hour * 3600, v: p.interactive })) },
+        { label: t('us.background'), color: 'var(--n3)', points: a.hourly.map((p) => ({ t: p.hour * 3600, v: Math.max(0, p.online - p.interactive) })) },
       ],
     });
     page.append(panel(t('us.hourly'), hc, t('us.hourly_hint')));
@@ -172,7 +172,7 @@ async function timeline(id, ctx) {
   const picker = h('input', { class: 'input', type: 'date', value: date, max: today, style: { width: '160px' }, 'aria-label': t('tl.pick'), onchange: (e) => { if (e.target.value) location.hash = nav(e.target.value); } });
   page.append(h('div', { class: 'row' },
     h('a', { class: 'btn icon', href: nav(shift(-1)), 'aria-label': t('prev'), style: { transform: flip } }, icon('chevron')),
-    h('div', { style: { fontWeight: 650, minWidth: '230px', textAlign: 'center' } }, fmtDateStr(date)),
+    h('div', { style: { fontWeight: 500, minWidth: '230px', textAlign: 'center' } }, fmtDateStr(date)),
     date < today ? h('a', { class: 'btn icon', href: nav(shift(1)), 'aria-label': t('next'), style: { transform: isFa() ? 'scaleX(-1)' : 'none' } }, icon('chevron')) : h('span', { class: 'btn icon', style: { opacity: 0.35 } }, icon('chevron')),
     date !== today ? h('a', { class: 'btn', href: nav(today) }, t('today')) : null, picker));
 
@@ -181,9 +181,9 @@ async function timeline(id, ctx) {
   const bg = t0.minutes - idle - inter;
   const strCard = panel(t('tl.minutes'), h('div', null, strip(t0.strip, t0.start),
     h('div', { class: 'legend' },
-      h('span', null, h('i', { class: 'swatch', style: { background: 'var(--d1)' } }), t('strip.inter') + ': ' + dur(inter)),
-      h('span', null, h('i', { class: 'swatch', style: { background: 'var(--d3)' } }), t('strip.bg') + ': ' + dur(bg)),
-      h('span', null, h('i', { class: 'swatch', style: { background: 'var(--panel-2)', boxShadow: 'inset 0 0 0 1px var(--rule)' } }), t('strip.idle')))),
+      h('span', null, h('i', { class: 'swatch', style: { background: 'var(--accent)' } }), t('strip.inter') + ': ' + dur(inter)),
+      h('span', null, h('i', { class: 'swatch', style: { background: 'var(--n2)' } }), t('strip.bg') + ': ' + dur(bg)),
+      h('span', null, h('i', { class: 'swatch', style: { background: 'var(--raised)', boxShadow: 'inset 0 0 0 1px var(--rule)' } }), t('strip.idle')))),
   dur(inter + bg) + ' ' + t('tl.online'));
   page.append(strCard);
 
@@ -205,8 +205,8 @@ async function timeline(id, ctx) {
     timeChart(tc, {
       from: t0.start, to: t0.start + t0.minutes * 60, bucket: t0.traffic.bucket, yFmt: bytes, height: 180,
       series: [
-        { label: t('download'), color: 'var(--d1)', points: t0.traffic.points.map((p) => ({ t: p.t, v: p.down })) },
-        { label: t('upload'), color: 'var(--d3)', points: t0.traffic.points.map((p) => ({ t: p.t, v: p.up })) },
+        { label: t('download'), color: 'var(--accent)', points: t0.traffic.points.map((p) => ({ t: p.t, v: p.down })) },
+        { label: t('upload'), color: 'var(--n2)', points: t0.traffic.points.map((p) => ({ t: p.t, v: p.up })) },
       ],
     });
     page.append(panel(t('chart.traffic'), tc, t('download') + ' ' + bytes(t0.traffic.down) + ', ' + t('upload') + ' ' + bytes(t0.traffic.up)));
@@ -340,8 +340,8 @@ function sleep(r) {
   }
   card.append(h('div', { class: 'legend' },
     h('span', null, h('i', { class: 'swatch', style: { background: 'var(--warn)' } }), t('sl.kind.connected')),
-    h('span', null, h('i', { class: 'swatch', style: { background: 'var(--d1)' } }), t('sl.kind.offline')),
-    h('span', null, h('i', { class: 'swatch', style: { background: 'var(--d1)', opacity: 0.45 } }), t('sl.kind.atypical'))));
+    h('span', null, h('i', { class: 'swatch', style: { background: 'var(--accent)' } }), t('sl.kind.offline')),
+    h('span', null, h('i', { class: 'swatch', style: { background: 'var(--accent)', opacity: 0.45 } }), t('sl.kind.atypical'))));
   page.append(panel(t('sl.nightly'), card, t('sl.nightly_hint')));
 
   const tc = h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' },

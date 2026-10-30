@@ -57,10 +57,10 @@ export async function guidePage() {
       h('div', { class: 'n' }, String(n)),
       h('div', null,
         h('p', { style: { marginTop: 0 } }, t(`g.${n}.text`)),
-        h('div', { class: 'muted', style: { fontWeight: 600, marginBottom: '4px' } }, t('g.steps')),
+        h('div', { class: 'muted', style: { fontWeight: 500, marginBottom: '4px' } }, t('g.steps')),
         h('ol', { style: { margin: '0 0 12px', paddingInlineStart: '22px', lineHeight: 1.9 } },
           Array.from({ length: STEPS[n] }, (_, i) => h('li', null, t(`g.${n}.s${i + 1}`)))),
-        h('div', { class: 'muted', style: { fontWeight: 600, marginBottom: '4px' } }, t('g.snippet')),
+        h('div', { class: 'muted', style: { fontWeight: 500, marginBottom: '4px' } }, t('g.snippet')),
         h('div', { class: 'code' }, SNIPPETS[n]),
         h('div', { class: 'row', style: { marginTop: '8px' } }, copyBtn(SNIPPETS[n]), h('span', { class: 'muted small' }, t(`g.${n}.note`)))));
     page.append(panel(t(`g.${n}.title`), body, h('span', null, detail(n, st, state), ' ', tag(t('g.' + state), tone))));

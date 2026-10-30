@@ -12,7 +12,7 @@ export async function onlinePage() {
   const rows = list.map((u) => {
     const over = u.limit_ip > 0 && u.conns.length > u.limit_ip;
     return h('div', { class: 'live-row' + (over ? ' over' : '') },
-      h('div', null, h('a', { href: '#/users/' + u.user_id, style: { fontWeight: 600 } }, u.email),
+      h('div', null, h('a', { href: '#/users/' + u.user_id, style: { fontWeight: 500 } }, u.email),
         h('div', { class: 'muted small' }, t('n_ips', { n: num(u.conns.length) }) + (u.limit_ip ? ' ' + t('of') + ' ' + num(u.limit_ip) : ''))),
       h('div', { class: 'ips' }, u.conns.map((c) => h('div', null,
         h('a', { class: 'mono', href: '#/ips?ip=' + encodeURIComponent(c.ip) }, c.ip),
