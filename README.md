@@ -131,7 +131,7 @@ Agent keys: `server_url`, `token`, `node_name`, `server_proxy`, `server_sni`, `i
 - **"Time spent"** is the number of minutes in which the user's connections touched a service. Background traffic (updates, push, connectivity checks, CDN, telemetry) is tracked separately and never counts as interactive use.
 - **Sleep** = the longest night-time gap without interactive traffic. Isolated blips (a push notification waking an app) are ignored. If background traffic continues during the gap the night is labelled *connected while inactive* – the phone/VPN stayed on – otherwise *no traffic at all*.
 - **Device guesses** use well-known OS and browser housekeeping domains (Windows telemetry, Android connectivity checks, Apple services, Chrome/Firefox/Edge updaters, …). Several OS families on one IP are reported as several devices. These are *heuristics*; the panel always shows a confidence value.
-- Anything that hides the destination (no sniffing, ECH, a pure-IP service) shows up as an address instead of a site.
+- **CDN in front of the server.** If users connect through Cloudflare, ArvanCloud, Fastly, CloudFront or Gcore, Xray only sees the CDN edge address. XrayScope labels those addresses and warns on the *System* page. To log real client IPs, enable *Sockopt ? Trusted X-Forwarded-For* on the inbound (WebSocket / HTTPUpgrade / XHTTP) with the headers `CF-Connecting-IP`, `AR-Real-IP`, `X-Real-IP`, `X-Forwarded-For`. Edge ranges are the ones the CDNs publish (`go run ./tools/cdnranges` refreshes them).`n- Anything that hides the destination (no sniffing, ECH, a pure-IP service) shows up as an address instead of a site.
 
 ## Development
 

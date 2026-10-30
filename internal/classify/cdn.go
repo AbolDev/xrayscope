@@ -1,23 +1,55 @@
 package classify
 
-import "net/netip"
-
-// Cloudflare's published edge ranges. When users connect through such a CDN
-// the proxy sees the CDN address instead of the client's.
-var cloudflare = mustPrefixes(
-	"173.245.48.0/20", "103.21.244.0/22", "103.22.200.0/22", "103.31.4.0/22", "141.101.64.0/18",
-	"108.162.192.0/18", "190.93.240.0/20", "188.114.96.0/20", "197.234.240.0/22", "198.41.128.0/17",
-	"162.158.0.0/15", "104.16.0.0/13", "104.24.0.0/14", "172.64.0.0/13", "131.0.72.0/22",
-	"2400:cb00::/32", "2606:4700::/32", "2803:f800::/32", "2405:b500::/32", "2405:8100::/32",
-	"2a06:98c0::/29", "2c0f:f248::/32",
+import (
+	_ "embed"
+	"net/netip"
+	"sort"
+	"strings"
 )
 
-func mustPrefixes(s ...string) []netip.Prefix {
-	out := make([]netip.Prefix, len(s))
-	for i, p := range s {
-		out[i] = netip.MustParsePrefix(p)
+// cdn_ranges.txt holds the edge ranges the CDNs publish themselves
+// (regenerate with `go run ./tools/cdnranges`). When users connect through
+// such a CDN the proxy sees the CDN address instead of the client's.
+//
+//go:embed cdn_ranges.txt
+var cdnRanges string
+
+type cdnIndex struct {
+	lens []int // distinct prefix lengths, longest first; IPv6 lengths are offset by 1000
+	m    map[netip.Prefix]string
+}
+
+var cdnTable = buildCDN(cdnRanges)
+
+func buildCDN(src string) *cdnIndex {
+	idx := &cdnIndex{m: map[netip.Prefix]string{}}
+	seen := map[int]bool{}
+	for _, line := range strings.Split(src, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || line[0] == '#' {
+			continue
+		}
+		name, cidr, ok := strings.Cut(line, "|")
+		if !ok {
+			continue
+		}
+		p, err := netip.ParsePrefix(cidr)
+		if err != nil {
+			continue
+		}
+		p = p.Masked()
+		idx.m[p] = name
+		l := p.Bits()
+		if p.Addr().Is6() {
+			l += 1000
+		}
+		if !seen[l] {
+			seen[l] = true
+			idx.lens = append(idx.lens, l)
+		}
 	}
-	return out
+	sort.Sort(sort.Reverse(sort.IntSlice(idx.lens)))
+	return idx
 }
 
 // CDN returns the CDN name when ip belongs to a known CDN edge network.
@@ -27,9 +59,22 @@ func CDN(ip string) string {
 		return ""
 	}
 	a = a.Unmap()
-	for _, p := range cloudflare {
-		if p.Contains(a) {
-			return "Cloudflare"
+	for _, l := range cdnTable.lens {
+		bits := l
+		if l >= 1000 {
+			if !a.Is6() {
+				continue
+			}
+			bits = l - 1000
+		} else if !a.Is4() {
+			continue
+		}
+		p, err := a.Prefix(bits)
+		if err != nil {
+			continue
+		}
+		if name, ok := cdnTable.m[p]; ok {
+			return name
 		}
 	}
 	return ""
