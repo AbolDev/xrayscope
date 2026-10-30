@@ -1,7 +1,7 @@
 // Hand-written SVG/CSS charts: no dependencies, light on the browser.
-import { h, svg, t, num, fmtTime, fmtDay, fmtDate, fmtWeekday, isFa, debounce, dur } from './util.js';
-
-const NS = 'http://www.w3.org/2000/svg';
+// Colour discipline: one accent, a lightness ramp of it for further series,
+// text never takes the colour of the data it labels.
+import { h, svg, t, num, fmtTime, fmtDay, fmtDate, fmtWeekday, isFa, debounce, dur, ramp } from './util.js';
 
 function niceMax(v) {
   if (v <= 0) return 1;
@@ -36,12 +36,12 @@ function observe(wrap, draw) {
 }
 
 /**
- * Time series with stacked bars (few buckets) or stacked areas (many).
- * opts: {from, to, bucket, series:[{label,color,points:[{t,v}]}], height, yFmt}
+ * Time series, stacked bars. A baseline at zero, one y axis, four hairline
+ * grid lines. opts: {from, to, bucket, series:[{label,color,points:[{t,v}]}], height, yFmt, labelShift}
  */
 export function timeChart(host, opts) {
-  const H = opts.height || 230;
-  const M = { l: 52, r: 10, t: 10, b: 24 };
+  const H = opts.height || 220;
+  const M = { l: 52, r: 8, t: 8, b: 24 };
   const wrap = h('div', { class: 'chart', style: { height: H + 'px' } });
   host.append(wrap);
   const tip = attachTip(wrap);
@@ -60,6 +60,7 @@ export function timeChart(host, opts) {
   const totals = new Array(steps).fill(0);
   vals.forEach((arr) => arr.forEach((v, i) => { totals[i] += v; }));
   const max = niceMax(Math.max(...totals, 0));
+  const shift = opts.labelShift || 0;
 
   function draw() {
     const W = Math.max(260, wrap.clientWidth);
@@ -73,7 +74,7 @@ export function timeChart(host, opts) {
       s.append(svg('text', { x: M.l - 8, y: y(v) + 4, 'text-anchor': 'end' }, yFmt(v)));
     }
     const bw = pw / steps;
-    const barMode = steps <= 130;
+    const barMode = steps <= 160;
     const acc = new Array(steps).fill(0);
     vals.forEach((arr, si) => {
       const color = opts.series[si].color;
@@ -82,7 +83,7 @@ export function timeChart(host, opts) {
         arr.forEach((v, i) => {
           if (v <= 0) return;
           const y0 = y(acc[i]), y1 = y(acc[i] + v);
-          s.append(svg('rect', { x: M.l + i * bw + gap / 2, y: y1, width: Math.max(1, bw - gap), height: Math.max(0.5, y0 - y1), fill: color, rx: bw > 8 ? 2 : 0 }));
+          s.append(svg('rect', { x: M.l + i * bw + gap / 2, y: y1, width: Math.max(1, bw - gap), height: Math.max(0.5, y0 - y1), fill: color }));
           acc[i] += v;
         });
       } else {
@@ -94,13 +95,11 @@ export function timeChart(host, opts) {
           top.push([x, y(acc[i])]);
         });
         const d = 'M' + top.map((p) => p.join(',')).join('L') + 'L' + bot.reverse().map((p) => p.join(',')).join('L') + 'Z';
-        s.append(svg('path', { d, fill: color, 'fill-opacity': 0.55, stroke: color, 'stroke-width': 1 }));
+        s.append(svg('path', { d, fill: color, 'fill-opacity': 0.85 }));
       }
     });
-    // x axis
-    const every = Math.max(1, Math.ceil(steps / Math.max(2, Math.floor(pw / 78))));
+    const every = Math.max(1, Math.ceil(steps / Math.max(2, Math.floor(pw / 80))));
     let prevDay = '';
-    const shift = opts.labelShift || 0;
     for (let i = 0; i < steps; i += every) {
       const ts = start + i * bucket + shift;
       let label;
@@ -108,17 +107,16 @@ export function timeChart(host, opts) {
       else {
         const d = fmtDay(ts);
         label = fmtTime(ts);
-        if (d !== prevDay && (every * bucket >= 3600 * 3 || prevDay === '')) label = fmtDay(ts) + ' ' + label;
+        if (d !== prevDay && (every * bucket >= 3600 * 3 || prevDay === '')) label = d + ' ' + label;
         prevDay = d;
       }
       s.append(svg('text', { x: M.l + (i + 0.5) * bw, y: H - 6, 'text-anchor': 'middle' }, label));
     }
-    // hover
     const hit = svg('rect', { x: M.l, y: M.t, width: pw, height: ph, fill: 'transparent' });
     hit.addEventListener('mousemove', (e) => {
       const r = s.getBoundingClientRect();
       const i = Math.min(steps - 1, Math.max(0, Math.floor((e.clientX - r.left - M.l) / bw)));
-      const ts = start + i * bucket + (opts.labelShift || 0);
+      const ts = start + i * bucket + shift;
       const rows = opts.series.map((sr, si) => ({ color: sr.color, text: sr.label + ': ' + yFmt(vals[si][i]) }));
       const title = bucket >= 86400 ? fmtDate(ts) : fmtDay(ts) + ' ' + fmtTime(ts);
       tip.show(M.l + (i + 0.5) * bw, y(totals[i]) - 8, rows, title);
@@ -128,64 +126,56 @@ export function timeChart(host, opts) {
     wrap.prepend(s);
   }
   observe(wrap, draw);
-  if (opts.series.length > 1 || opts.legend) {
-    host.append(h('div', { class: 'legend' }, opts.series.map((s) => h('span', null, h('i', { style: { background: s.color } }), s.label))));
+  if (opts.series.length > 1) {
+    host.append(h('div', { class: 'legend' }, opts.series.map((s) => h('span', null, h('i', { class: 'swatch', style: { background: s.color } }), s.label))));
   }
   return wrap;
 }
 
-/** Horizontal bars. items: [{label, value, color, text}] */
-export function barList(items, opts = {}) {
+/** Ranked horizontal bars in the accent. items: [{label, value, text, link}] */
+export function rank(items, opts = {}) {
   const max = Math.max(...items.map((i) => i.value), 1);
-  return h('div', { class: 'bars' }, items.map((it) => h('div', { class: 'bar-row' },
+  return h('div', { class: 'rank' }, items.map((it) => h('div', { class: 'rank-row' },
     h('div', { class: 'name', title: it.label }, it.link ? h('a', { href: it.link }, it.label) : it.label),
-    h('div', { class: 'track' }, h('i', { style: { width: Math.max(1.5, (it.value / max) * 100) + '%', background: it.color || 'var(--primary)' } })),
+    h('div', { class: 'track' }, h('i', { style: { width: Math.max(1.5, (it.value / max) * 100) + '%', background: it.color || null } })),
     h('div', { class: 'val' }, it.text != null ? it.text : (opts.fmt || num)(it.value)))));
 }
 
-/** Donut chart with a centre label. items: [{label, value, color}] */
-export function donut(items, opts = {}) {
-  const size = opts.size || 170, r = size / 2 - 12, c = size / 2, sw = 22;
-  const total = items.reduce((a, b) => a + b.value, 0);
-  const s = svg('svg', { viewBox: `0 0 ${size} ${size}`, width: size, height: size });
-  const wrap = h('div', { class: 'chart', style: { width: size + 'px', height: size + 'px', margin: '0 auto' } });
-  const tip = attachTip(wrap);
-  if (total <= 0) {
-    s.append(svg('circle', { cx: c, cy: c, r, fill: 'none', stroke: 'var(--border)', 'stroke-width': sw }));
-  } else {
-    let a0 = -Math.PI / 2;
-    for (const it of items) {
-      if (it.value <= 0) continue;
-      const frac = it.value / total;
-      if (frac > 0.9999) {
-        s.append(svg('circle', { cx: c, cy: c, r, fill: 'none', stroke: it.color, 'stroke-width': sw }));
-        break;
-      }
-      const a1 = a0 + frac * Math.PI * 2;
-      const large = frac > 0.5 ? 1 : 0;
-      const p = (a) => [c + r * Math.cos(a), c + r * Math.sin(a)];
-      const [x0, y0] = p(a0), [x1, y1] = p(a1);
-      const path = svg('path', { d: `M${x0},${y0} A${r},${r} 0 ${large} 1 ${x1},${y1}`, fill: 'none', stroke: it.color, 'stroke-width': sw });
-      path.addEventListener('mousemove', () => tip.show(c, 10, [{ color: it.color, text: `${it.label}: ${(opts.fmt || num)(it.value)} (${num(frac * 100, 1)}%)` }]));
-      path.addEventListener('mouseleave', tip.hide);
-      s.append(path);
-      a0 = a1;
-    }
-  }
-  if (opts.center) {
-    s.append(svg('text', { x: c, y: c - 2, 'text-anchor': 'middle', style: 'font-size:17px;font-weight:800;fill:var(--text)' }, opts.center));
-    if (opts.centerSub) s.append(svg('text', { x: c, y: c + 16, 'text-anchor': 'middle', style: 'font-size:11px' }, opts.centerSub));
-  }
-  wrap.prepend(s);
-  return wrap;
+/**
+ * A part-to-whole stacked bar (never a pie) followed by a table that carries
+ * the numbers. items: [{label, value}] sorted by value, largest first; the
+ * ramp is assigned by rank and everything past the fifth shares the lightest.
+ */
+export function parts(items, opts = {}) {
+  const total = items.reduce((a, b) => a + b.value, 0) || 1;
+  const fmt = opts.fmt || num;
+  const bar = h('div', { class: 'stackbar' }, items.map((it, i) => h('i', {
+    style: { width: (it.value / total) * 100 + '%', background: ramp(Math.min(i, 4)) },
+    title: `${it.label}: ${fmt(it.value)} (${num((it.value / total) * 100, 1)}%)`,
+  })));
+  const table = h('table', { class: 'tbl' },
+    h('tbody', null, items.map((it, i) => h('tr', null,
+      h('td', null, h('i', { class: 'swatch', style: { background: ramp(Math.min(i, 4)) } }), it.label),
+      h('td', { class: 'num' }, fmt(it.value)),
+      h('td', { class: 'num faint' }, num((it.value / total) * 100, 1) + '%')))));
+  return h('div', null, bar, h('div', { class: 'tbl-wrap', style: { marginTop: '6px' } }, table));
 }
 
-/** Legend list for donut-like data. */
-export function legend(items, fmt) {
-  return h('div', { class: 'legend' }, items.map((i) => h('span', null, h('i', { style: { background: i.color } }), i.label + (fmt ? ' · ' + fmt(i.value) : ''))));
+/** Presence strip: tiny bars, one per slice, for table rows. values: numbers. */
+export function sparkline(values, opts = {}) {
+  const w = opts.width || 96, hgt = opts.height || 22;
+  const max = Math.max(...values, 1);
+  const n = values.length;
+  const bw = w / n;
+  const s = svg('svg', { class: 'spark', width: w, height: hgt, viewBox: `0 0 ${w} ${hgt}`, role: 'img', 'aria-label': opts.label || '' });
+  values.forEach((v, i) => {
+    const bh = v > 0 ? Math.max(2, (v / max) * hgt) : 2;
+    s.append(svg('rect', { class: v > 0 ? '' : 'off', x: i * bw + 0.5, y: hgt - bh, width: Math.max(1, bw - 1), height: bh }));
+  });
+  return s;
 }
 
-/** 7x24 heatmap; matrix[weekday 0=Sunday][hour] = value. */
+/** 7x24 heatmap; matrix[weekday 0=Sunday][hour] = value. One hue, intensity by value. */
 export function heatmap(matrix, opts = {}) {
   let max = 0;
   matrix.forEach((r) => r.forEach((v) => { if (v > max) max = v; }));
@@ -193,7 +183,6 @@ export function heatmap(matrix, opts = {}) {
   const names = (wd) => fmtWeekday(Date.UTC(2023, 0, 1 + wd, 12) / 1000);
   const grid = h('div', { class: 'heat', style: { gridTemplateColumns: '54px repeat(24, minmax(0, 1fr))' } });
   const tip = attachTip(grid);
-  grid.style.position = 'relative';
   grid.append(h('div'));
   for (let hr = 0; hr < 24; hr++) grid.append(h('div', { class: 'lab' }, hr % 3 === 0 ? String(hr).padStart(2, '0') : ''));
   for (const wd of order) {
@@ -201,10 +190,10 @@ export function heatmap(matrix, opts = {}) {
     for (let hr = 0; hr < 24; hr++) {
       const v = matrix[wd][hr];
       const a = max > 0 ? v / max : 0;
-      const cell = h('div', { class: 'cell', style: { background: v > 0 ? `color-mix(in srgb, var(--primary) ${Math.round(12 + a * 88)}%, var(--surface-2))` : '' } });
+      const cell = h('div', { class: 'cell', style: { background: v > 0 ? `color-mix(in srgb, var(--accent) ${Math.round(14 + a * 86)}%, var(--panel-2))` : '' } });
       cell.addEventListener('mouseenter', () => {
         const r = cell.getBoundingClientRect(), g = grid.getBoundingClientRect();
-        tip.show(r.left - g.left + r.width / 2, r.top - g.top - 4, [{ text: `${names(wd)} ${String(hr).padStart(2, '0')}:00 — ${(opts.fmt || ((x) => dur(x)))(v)}` }]);
+        tip.show(r.left - g.left + r.width / 2, r.top - g.top - 4, [{ text: `${names(wd)} ${String(hr).padStart(2, '0')}:00, ${(opts.fmt || ((x) => dur(x)))(v)}` }]);
       });
       cell.addEventListener('mouseleave', tip.hide);
       grid.append(cell);
@@ -214,20 +203,19 @@ export function heatmap(matrix, opts = {}) {
 }
 
 /**
- * Minute strip of one day: chars '0' idle, '1' background traffic,
- * '2' interactive traffic.
+ * Minute strip of one day: '0' idle, '1' background traffic, '2' interactive.
  */
-export function strip(str, startSec, opts = {}) {
+export function strip(str, startSec) {
   const n = str.length;
-  const H = 46;
+  const H = 40;
   const wrap = h('div', { class: 'chart strip-box', style: { height: H + 20 + 'px' } });
   const tip = attachTip(wrap);
-  const colors = { 1: 'var(--warn)', 2: 'var(--primary)' };
+  const colors = { 1: 'var(--d3)', 2: 'var(--d1)' };
   function draw() {
     const W = Math.max(280, wrap.clientWidth);
     wrap.querySelectorAll('svg').forEach((x) => x.remove());
     const s = svg('svg', { width: W, height: H + 20, viewBox: `0 0 ${W} ${H + 20}` });
-    s.append(svg('rect', { x: 0, y: 0, width: W, height: H, rx: 8, fill: 'var(--surface-2)', stroke: 'var(--border)' }));
+    s.append(svg('rect', { x: 0, y: 0, width: W, height: H, rx: 4, fill: 'var(--panel-2)' }));
     const mw = W / n;
     let i = 0;
     while (i < n) {
@@ -235,7 +223,7 @@ export function strip(str, startSec, opts = {}) {
       if (c === '0') { i++; continue; }
       let j = i;
       while (j < n && str[j] === c) j++;
-      s.append(svg('rect', { x: i * mw, y: 2, width: Math.max(1.2, (j - i) * mw), height: H - 4, fill: colors[c], rx: 1.5 }));
+      s.append(svg('rect', { x: i * mw, y: 2, width: Math.max(1.2, (j - i) * mw), height: H - 4, fill: colors[c] }));
       i = j;
     }
     for (let hr = 0; hr <= 24; hr += 2) {
@@ -248,7 +236,7 @@ export function strip(str, startSec, opts = {}) {
       const r = s.getBoundingClientRect();
       const m = Math.min(n - 1, Math.max(0, Math.floor(((e.clientX - r.left) / W) * n)));
       const state = { 0: t('strip.idle'), 1: t('strip.bg'), 2: t('strip.inter') }[str[m]];
-      tip.show((m + 0.5) * mw, -2, [{ color: colors[str[m]], text: fmtTime(startSec + m * 60) + ' — ' + state }]);
+      tip.show((m + 0.5) * mw, -2, [{ color: colors[str[m]], text: fmtTime(startSec + m * 60) + ', ' + state }]);
     });
     hit.addEventListener('mouseleave', tip.hide);
     s.append(hit);
@@ -261,7 +249,7 @@ export function strip(str, startSec, opts = {}) {
 /** Rows of bars on a 24h axis. rows: [{label, color, spans:[{start,end,title}]}] (unix seconds). */
 export function gantt(rows, startSec, minutes) {
   const total = minutes * 60;
-  const wrap = h('div', { class: 'gantt', style: { position: 'relative' } });
+  const wrap = h('div', { class: 'gantt' });
   const tip = attachTip(wrap);
   for (const r of rows) {
     const track = h('div', { class: 'g-track' });

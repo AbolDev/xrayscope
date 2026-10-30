@@ -143,6 +143,21 @@ func TestTimelineAndOverview(t *testing.T) {
 		t.Fatalf("users = %+v err=%v", rows, err)
 	}
 
+	if len(rows[0].Spark) != 5 {
+		t.Fatalf("spark bins = %d", len(rows[0].Spark))
+	}
+	var sum int64
+	for _, v := range rows[0].Spark {
+		sum += int64(v)
+	}
+	if sum != rows[0].Minutes {
+		t.Fatalf("spark holds %d minutes, row says %d", sum, rows[0].Minutes)
+	}
+	short, _ := e.Users(context.Background(), Range{From: now - 3600, To: now})
+	if len(short[0].Spark) != 24 {
+		t.Fatalf("short range must give 24 hourly slices, got %d", len(short[0].Spark))
+	}
+
 	sl, err := e.Sites(context.Background(), id, Range{From: now - 5*86400, To: now}, "insta", "", 10, 0)
 	if err != nil || sl.Total != 1 || sl.Sites[0].Domain != "instagram.com" {
 		t.Fatalf("sites = %+v err=%v", sl, err)

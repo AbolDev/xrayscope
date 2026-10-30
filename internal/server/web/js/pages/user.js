@@ -1,10 +1,9 @@
 import { api, guard } from '../api.js';
 import {
-  h, t, num, bytes, dur, ago, flag, icon, empty, catColor, catName, fmtDate, fmtDateTime, fmtTime, fmtDay, fmtDateStr,
-  dateStrToSec, ymd, state, toast, modal, confirmBox, debounce, isFa, isBgCat, digits,
+  h, t, num, bytes, dur, ago, flag, icon, empty, catName, fmtDate, fmtDateTime, fmtTime, fmtDateStr,
+  dateStrToSec, ymd, state, modal, confirmBox, debounce, isFa, isBgCat, digits, ltr, tag, stats, panel, ramp, queryGet, queryPut,
 } from '../util.js';
-import { timeChart, barList, donut, legend, heatmap, strip, gantt } from '../charts.js';
-import { kpi } from './overview.js';
+import { timeChart, rank, parts, heatmap, strip, gantt } from '../charts.js';
 
 const TABS = ['summary', 'timeline', 'sites', 'network', 'sleep'];
 
@@ -35,29 +34,29 @@ function header(u, online, id, rg, ctx) {
   const pct = u.quota > 0 ? Math.min(100, (used / u.quota) * 100) : 0;
   const expired = u.expiry > 0 && u.expiry * 1000 < Date.now();
   const exp = (kind) => `api/users/${id}/export?kind=${kind}&from=${rg.from}&to=${rg.to}`;
-  return h('div', { class: 'card' },
-    h('div', { class: 'row', style: { gap: '14px' } },
-      h('a', { class: 'btn icon', href: '#/users', title: t('back') }, icon('chevron')),
-      h('span', { class: 'status-dot' + (online ? ' on' : ''), style: { width: '12px', height: '12px' } }),
+  return panel(null, h('div', null,
+    h('div', { class: 'row', style: { gap: '14px', alignItems: 'flex-start' } },
+      h('a', { class: 'btn icon', href: '#/users', title: t('back'), 'aria-label': t('back'), style: { transform: isFa() ? 'none' : 'scaleX(-1)' } }, icon('chevron')),
       h('div', { class: 'grow' },
-        h('div', { style: { fontSize: '19px', fontWeight: 800 } }, u.email, !u.enabled ? h('span', { class: 'chip bad', style: { marginInlineStart: '10px' } }, t('disabled')) : null),
-        h('div', { class: 'muted' }, online ? t('online_n', { n: num(online.conns.length) }) : t('last_seen_at', { t: u.last_seen ? ago(u.last_seen) : '—' }),
-          u.first_seen ? ' · ' + t('first_seen_at', { d: fmtDate(u.first_seen) }) : '')),
-      u.quota > 0 ? h('div', { style: { minWidth: '170px' } },
-        h('div', { class: 'progress' + (pct > 95 ? ' bad' : pct > 80 ? ' warn' : '') }, h('i', { style: { width: pct + '%' } })),
-        h('div', { class: 'faint', style: { fontSize: '11.5px' } }, bytes(used) + ' / ' + bytes(u.quota))) : null,
-      u.expiry ? h('span', { class: 'chip ' + (expired ? 'bad' : '') }, icon('clock'), (expired ? t('expired') : t('expires')) + ' ' + fmtDate(u.expiry)) : null,
+        h('div', { style: { fontSize: 'var(--t-xl)', fontWeight: 650 } }, u.email, ' ',
+          online ? tag(t('online_n', { n: num(online.conns.length) }), 'ok') : tag(t('offline')), !u.enabled ? [' ', tag(t('disabled'), 'bad')] : null),
+        h('div', { class: 'muted small' }, t('last_seen_at', { t: u.last_seen ? ago(u.last_seen) : '-' })),
+        u.first_seen ? h('div', { class: 'muted small' }, t('first_seen_at', { d: fmtDate(u.first_seen) })) : null),
+      u.quota > 0 ? h('div', { style: { minWidth: '180px' } },
+        h('div', { class: 'meter' + (pct > 95 ? ' bad' : pct > 80 ? ' warn' : '') }, h('i', { style: { width: pct + '%' } })),
+        h('div', { class: 'faint small' }, ltr(bytes(used) + ' / ' + bytes(u.quota)))) : null,
+      u.expiry ? h('div', null, tag((expired ? t('expired') : t('expires')) + ' ' + fmtDate(u.expiry), expired ? 'bad' : '')) : null,
       h('div', { class: 'row', style: { gap: '6px' } },
-        h('a', { class: 'btn sm', href: exp('sites'), download: '' }, icon('download'), 'CSV · ' + t('tab.sites')),
-        h('a', { class: 'btn sm', href: exp('daily'), download: '' }, 'CSV · ' + t('csv.daily')),
+        h('a', { class: 'btn sm', href: exp('sites'), download: '' }, icon('download'), t('csv.sites')),
+        h('a', { class: 'btn sm', href: exp('daily'), download: '' }, icon('download'), t('csv.daily')),
         h('button', { class: 'btn sm', onclick: () => noteDialog(u, ctx) }, t('note')),
-        h('button', { class: 'btn sm danger', title: t('delete_user'), onclick: async () => {
+        h('button', { class: 'btn sm danger', title: t('delete_user'), 'aria-label': t('delete_user'), onclick: async () => {
           if (await confirmBox(t('delete_user'), t('delete_user_text', { name: u.email }), true)) {
             await guard(() => api.del('users/' + id));
             location.hash = '#/users';
           }
         } }, icon('trash')))),
-    u.note ? h('div', { class: 'alert', style: { marginTop: '12px' } }, u.note) : null);
+    u.note ? h('div', { class: 'alert', style: { marginTop: '12px' } }, u.note) : null));
 }
 
 function noteDialog(u, ctx) {
@@ -73,93 +72,82 @@ function noteDialog(u, ctx) {
 
 // ---------------------------------------------------------------- summary
 
-function summary(r, ctx) {
+function summary(r) {
   const a = r.activity;
   const page = h('div', { class: 'stack' });
-  page.append(h('div', { class: 'grid g4' },
-    kpi('clock', '', dur(a.online_minutes), t('us.online_time'), t('us.active_days', { n: num(a.active_days) })),
-    kpi('activity', 'ok', dur(a.interactive_minutes), t('us.interactive'), a.online_minutes ? t('us.share', { p: num((a.interactive_minutes / a.online_minutes) * 100) }) : ''),
-    kpi('live', 'warn', num(a.sessions), t('us.sessions'), a.sessions ? t('us.avg_session', { d: dur(a.avg_session_min), l: dur(a.longest_session_min) }) : ''),
-    kpi('download', 'down', bytes(r.traffic.down), t('download'), '↑ ' + bytes(r.traffic.up))));
+  page.append(stats([
+    { v: dur(a.online_minutes), l: t('us.online_time'), s: t('us.active_days', { n: num(a.active_days) }) },
+    { v: dur(a.interactive_minutes), l: t('us.interactive'), s: a.online_minutes ? t('us.share', { p: num((a.interactive_minutes / a.online_minutes) * 100) }) : '' },
+    { v: num(a.sessions), l: t('us.sessions'), s: a.sessions ? t('us.avg_session', { d: dur(a.avg_session_min), l: dur(a.longest_session_min) }) : '' },
+    { v: bytes(r.traffic.down), l: t('download'), s: t('upload') + ' ' + bytes(r.traffic.up) },
+  ]));
 
-  // traffic + categories
-  const tc = h('div', { class: 'card' }, h('h2', null, t('chart.traffic')));
+  const tc = h('div');
   if (r.traffic.points.length) {
     timeChart(tc, {
       from: r.range.from, to: r.range.to, bucket: r.traffic.bucket, yFmt: bytes, labelShift: r.traffic.bucket === 86400 ? 43200 : 0,
       series: [
-        { label: t('download'), color: 'var(--down)', points: r.traffic.points.map((p) => ({ t: p.t, v: p.down })) },
-        { label: t('upload'), color: 'var(--up)', points: r.traffic.points.map((p) => ({ t: p.t, v: p.up })) },
+        { label: t('download'), color: 'var(--d1)', points: r.traffic.points.map((p) => ({ t: p.t, v: p.down })) },
+        { label: t('upload'), color: 'var(--d3)', points: r.traffic.points.map((p) => ({ t: p.t, v: p.up })) },
       ],
     });
-  } else tc.append(empty(t('no_traffic')));
+  } else tc.append(empty(t('no_traffic'), t('no_traffic_hint')));
 
   const cats = r.by_category.filter((c) => c.minutes > 0 && !isBgCat(c.category));
-  const cc = h('div', { class: 'card' }, h('h2', null, t('us.time_by_cat'), h('span', { class: 'hint' }, t('chart.categories_hint'))));
-  if (cats.length) {
-    const items = cats.map((c) => ({ label: catName(c.category), value: c.minutes, color: catColor(c.category) }));
-    cc.append(donut(items, { fmt: dur, center: dur(items.reduce((x, y) => x + y.value, 0)), centerSub: t('us.total') }), legend(items.slice(0, 10), dur));
-  } else cc.append(empty());
-  page.append(h('div', { class: 'grid g-main' }, tc, cc));
+  const cc = cats.length ? parts(cats.slice(0, 7).map((c) => ({ label: catName(c.category), value: c.minutes })), { fmt: dur }) : empty(t('no_data'));
+  page.append(h('div', { class: 'cols c-main' }, panel(t('chart.traffic'), tc), panel(t('us.time_by_cat'), cc, t('chart.categories_hint'))));
 
   // interests
-  const fav = h('div', { class: 'card' }, h('h2', null, t('us.interests'), h('span', { class: 'hint' }, t('us.interests_hint'))));
-  const keys = Object.keys(r.favorites);
-  keys.sort((x, y) => (r.favorites[y][0]?.minutes || 0) - (r.favorites[x][0]?.minutes || 0));
-  if (keys.length) {
-    fav.append(h('div', { class: 'fav-grid' }, keys.map((k) => h('div', { class: 'fav' },
-      h('div', { class: 't' }, h('i', { style: { background: catColor(k) } }), catName(k)),
-      r.favorites[k].map((s) => h('div', { class: 's' }, h('b', null, s.service), h('span', null, dur(s.minutes))))))));
-  } else fav.append(empty());
-  page.append(fav);
+  const keys = Object.keys(r.favorites).sort((x, y) => (r.favorites[y][0]?.minutes || 0) - (r.favorites[x][0]?.minutes || 0));
+  const fav = keys.length
+    ? h('div', { class: 'interests' }, keys.map((k) => h('div', { class: 'interest' }, h('div', { class: 't' }, catName(k)),
+      r.favorites[k].map((s) => h('div', { class: 's' }, h('b', { style: { fontWeight: 600 } }, s.service), h('span', null, dur(s.minutes)))))))
+    : empty(t('us.no_interests'), t('us.no_interests_hint'));
+  page.append(panel(t('us.interests'), fav, t('us.interests_hint')));
 
-  // daily + hourly activity
-  const daily = r.activity.daily || [];
-  const dc = h('div', { class: 'card' }, h('h2', null, t('us.daily')));
+  // activity over time
+  const daily = a.daily || [];
+  const dc = h('div');
   if (daily.length) {
-    const pts = (key) => daily.map((d) => ({ t: dateStrToSec(d.date), v: d[key] }));
+    const pts = (f) => daily.map((d) => ({ t: dateStrToSec(d.date), v: f(d) }));
     timeChart(dc, {
-      from: dateStrToSec(daily[0].date) - 43200, to: dateStrToSec(daily[daily.length - 1].date) + 43200, bucket: 86400, labelShift: 43200,
+      from: dateStrToSec(daily[0].date) - 43200, to: dateStrToSec(daily[daily.length - 1].date) + 43200, bucket: 86400, labelShift: 43200, height: 190,
       yFmt: (v) => num(v / 60, 1) + (isFa() ? ' ' + t('u.hour') : 'h'),
       series: [
-        { label: t('us.interactive'), color: 'var(--primary)', points: pts('interactive') },
-        { label: t('us.background'), color: 'var(--warn)', points: daily.map((d) => ({ t: dateStrToSec(d.date), v: Math.max(0, d.online - d.interactive) })) },
+        { label: t('us.interactive'), color: 'var(--d1)', points: pts((d) => d.interactive) },
+        { label: t('us.background'), color: 'var(--d4)', points: pts((d) => Math.max(0, d.online - d.interactive)) },
       ],
-      height: 200,
     });
-  } else dc.append(empty());
-  page.append(dc);
+  } else dc.append(empty(t('no_data')));
+  page.append(panel(t('us.daily'), dc));
 
-  if (r.activity.hourly && r.activity.hourly.length) {
-    const hc = h('div', { class: 'card' }, h('h2', null, t('us.hourly')));
+  if (a.hourly && a.hourly.length) {
+    const hc = h('div');
     timeChart(hc, {
-      from: r.range.from, to: r.range.to, bucket: 3600, yFmt: (v) => num(v) + (isFa() ? '' : 'm'),
+      from: r.range.from, to: r.range.to, bucket: 3600, height: 180, yFmt: (v) => num(v),
       series: [
-        { label: t('us.interactive'), color: 'var(--primary)', points: r.activity.hourly.map((p) => ({ t: p.hour * 3600, v: p.interactive })) },
-        { label: t('us.background'), color: 'var(--warn)', points: r.activity.hourly.map((p) => ({ t: p.hour * 3600, v: Math.max(0, p.online - p.interactive) })) },
+        { label: t('us.interactive'), color: 'var(--d1)', points: a.hourly.map((p) => ({ t: p.hour * 3600, v: p.interactive })) },
+        { label: t('us.background'), color: 'var(--d4)', points: a.hourly.map((p) => ({ t: p.hour * 3600, v: Math.max(0, p.online - p.interactive) })) },
       ],
-      height: 190,
     });
-    page.append(hc);
+    page.append(panel(t('us.hourly'), hc, t('us.hourly_hint')));
   }
 
-  page.append(h('div', { class: 'card' }, h('h2', null, t('chart.heat'), h('span', { class: 'hint' }, t('us.heat_hint'))), heatmap(r.activity.heatmap)));
+  page.append(panel(t('chart.heat'), heatmap(a.heatmap), t('us.heat_hint')));
 
-  // top sites
   const top = r.top_sites.filter((s) => s.category !== 'cdn' && s.category !== 'system').slice(0, 12);
-  const ts = h('div', { class: 'card flush' }, h('h2', null, t('us.top_sites'), h('a', { class: 'hint', href: `#/users/${r.user.id}?tab=sites` }, t('see_all'))));
-  ts.append(top.length ? siteTable(top) : empty());
+  const ts = panel(t('us.top_sites'), top.length ? siteTable(top) : empty(t('no_data')), h('a', { href: `#/users/${r.user.id}?tab=sites` }, t('see_all')), true);
   page.append(ts);
   return page;
 }
 
 function siteTable(list) {
-  return h('div', { class: 'table-wrap' }, h('table', null,
+  return h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' },
     h('thead', null, h('tr', null, ['col.site', 'col.category', 'col.service', 'col.requests', 'col.active', 'col.first', 'col.last'].map((k, i) => h('th', { class: i >= 3 && i <= 4 ? 'num' : '' }, t(k))))),
     h('tbody', null, list.map((s) => h('tr', null,
       h('td', { class: 'mono' }, s.domain),
-      h('td', null, h('span', { class: 'chip' }, h('span', { class: 'dot', style: { background: catColor(s.category) } }), catName(s.category))),
-      h('td', null, s.service || '—'),
+      h('td', null, catName(s.category)),
+      h('td', null, s.service || h('span', { class: 'faint' }, '-')),
       h('td', { class: 'num' }, num(s.reqs)),
       h('td', { class: 'num' }, dur(s.minutes)),
       h('td', { class: 'muted' }, fmtDateTime(s.first * 60)),
@@ -180,88 +168,87 @@ async function timeline(id, ctx) {
     return dt.toISOString().slice(0, 10);
   };
   const nav = (d) => `#/users/${id}?tab=timeline&date=${d}`;
-  const picker = h('input', { class: 'input', type: 'date', value: date, max: today, style: { width: '160px' }, onchange: (e) => { if (e.target.value) location.hash = nav(e.target.value); } });
+  const flip = isFa() ? 'none' : 'scaleX(-1)';
+  const picker = h('input', { class: 'input', type: 'date', value: date, max: today, style: { width: '160px' }, 'aria-label': t('tl.pick'), onchange: (e) => { if (e.target.value) location.hash = nav(e.target.value); } });
   page.append(h('div', { class: 'row' },
-    h('a', { class: 'btn icon', href: nav(shift(-1)) }, icon('chevron')),
-    h('div', { style: { fontWeight: 700, minWidth: '230px', textAlign: 'center' } }, fmtDateStr(date)),
-    date < today ? h('a', { class: 'btn icon', href: nav(shift(1)), style: { transform: 'scaleX(-1)' } }, icon('chevron')) : h('span', { class: 'btn icon', style: { opacity: .3 } }, icon('chevron')),
+    h('a', { class: 'btn icon', href: nav(shift(-1)), 'aria-label': t('prev'), style: { transform: flip } }, icon('chevron')),
+    h('div', { style: { fontWeight: 650, minWidth: '230px', textAlign: 'center' } }, fmtDateStr(date)),
+    date < today ? h('a', { class: 'btn icon', href: nav(shift(1)), 'aria-label': t('next'), style: { transform: isFa() ? 'scaleX(-1)' : 'none' } }, icon('chevron')) : h('span', { class: 'btn icon', style: { opacity: 0.35 } }, icon('chevron')),
     date !== today ? h('a', { class: 'btn', href: nav(today) }, t('today')) : null, picker));
 
   const idle = (t0.strip.match(/0/g) || []).length;
   const inter = (t0.strip.match(/2/g) || []).length;
   const bg = t0.minutes - idle - inter;
-  const strCard = h('div', { class: 'card' }, h('h2', null, t('tl.minutes'), h('span', { class: 'hint' }, dur(inter + bg) + ' ' + t('tl.online'))));
-  strCard.append(strip(t0.strip, t0.start));
-  strCard.append(h('div', { class: 'legend' },
-    h('span', null, h('i', { style: { background: 'var(--primary)' } }), t('strip.inter') + ' · ' + dur(inter)),
-    h('span', null, h('i', { style: { background: 'var(--warn)' } }), t('strip.bg') + ' · ' + dur(bg)),
-    h('span', null, h('i', { style: { background: 'var(--surface-2)', border: '1px solid var(--border)' } }), t('strip.idle'))));
+  const strCard = panel(t('tl.minutes'), h('div', null, strip(t0.strip, t0.start),
+    h('div', { class: 'legend' },
+      h('span', null, h('i', { class: 'swatch', style: { background: 'var(--d1)' } }), t('strip.inter') + ': ' + dur(inter)),
+      h('span', null, h('i', { class: 'swatch', style: { background: 'var(--d3)' } }), t('strip.bg') + ': ' + dur(bg)),
+      h('span', null, h('i', { class: 'swatch', style: { background: 'var(--panel-2)', boxShadow: 'inset 0 0 0 1px var(--rule)' } }), t('strip.idle')))),
+  dur(inter + bg) + ' ' + t('tl.online'));
   page.append(strCard);
 
-  // sessions per IP
+  // connections per IP
   const byIP = new Map();
   for (const s of t0.sessions) {
     if (!byIP.has(s.ip)) byIP.set(s.ip, { country: s.country, spans: [] });
-    byIP.get(s.ip).spans.push({ start: s.start, end: s.end, title: `${s.ip} · ${fmtTime(s.start)}–${fmtTime(s.end)} · ${dur(s.active)}` });
+    byIP.get(s.ip).spans.push({ start: s.start, end: s.end, title: `${s.ip}  ${fmtTime(s.start)} - ${fmtTime(s.end)}  ${dur(s.active)}` });
   }
-  const palette = ['var(--primary)', 'var(--ok)', 'var(--warn)', 'var(--down)', '#ec4899', '#8b5cf6'];
-  const sc = h('div', { class: 'card' }, h('h2', null, t('tl.sessions'), h('span', { class: 'hint' }, t('tl.sessions_hint'))));
+  let sc;
   if (byIP.size) {
-    const rows = [...byIP.entries()].map(([ip, v], i) => ({ label: flag(v.country) + ' ' + ip, color: palette[i % palette.length], spans: v.spans }));
-    sc.append(gantt(rows, t0.start, t0.minutes));
-    if (byIP.size > 1) sc.append(h('div', { class: 'alert warn', style: { marginTop: '10px' } }, t('tl.multi_ip', { n: num(byIP.size) })));
-  } else sc.append(empty(t('tl.none')));
-  page.append(sc);
+    const rows = [...byIP.entries()].map(([ip, v], i) => ({ label: (flag(v.country) + ' ' + ip).trim(), color: ramp(Math.min(i * 1, 3)), spans: v.spans }));
+    sc = h('div', null, gantt(rows, t0.start, t0.minutes), byIP.size > 1 ? h('div', { class: 'alert warn', style: { marginTop: '10px' } }, t('tl.multi_ip', { n: num(byIP.size) })) : null);
+  } else sc = empty(t('tl.none'));
+  page.append(panel(t('tl.sessions'), sc, t('tl.sessions_hint')));
 
-  // traffic
   if (t0.traffic.points.length) {
-    const tc = h('div', { class: 'card' }, h('h2', null, t('chart.traffic'), h('span', { class: 'hint' }, '↓ ' + bytes(t0.traffic.down) + '  ↑ ' + bytes(t0.traffic.up))));
+    const tc = h('div');
     timeChart(tc, {
-      from: t0.start, to: t0.start + t0.minutes * 60, bucket: t0.traffic.bucket, yFmt: bytes, height: 190,
+      from: t0.start, to: t0.start + t0.minutes * 60, bucket: t0.traffic.bucket, yFmt: bytes, height: 180,
       series: [
-        { label: t('download'), color: 'var(--down)', points: t0.traffic.points.map((p) => ({ t: p.t, v: p.down })) },
-        { label: t('upload'), color: 'var(--up)', points: t0.traffic.points.map((p) => ({ t: p.t, v: p.up })) },
+        { label: t('download'), color: 'var(--d1)', points: t0.traffic.points.map((p) => ({ t: p.t, v: p.down })) },
+        { label: t('upload'), color: 'var(--d3)', points: t0.traffic.points.map((p) => ({ t: p.t, v: p.up })) },
       ],
     });
-    page.append(tc);
+    page.append(panel(t('chart.traffic'), tc, t('download') + ' ' + bytes(t0.traffic.down) + ', ' + t('upload') + ' ' + bytes(t0.traffic.up)));
   }
 
-  // what was visited
-  const vc = h('div', { class: 'card' }, h('h2', null, t('tl.visited'), h('span', { class: 'hint' }, t('tl.visited_hint'))));
-  if (t0.blocks.length) {
-    vc.append(h('div', { class: 'stack', style: { gap: '10px' } }, t0.blocks.map((b) => h('div', { style: { display: 'grid', gridTemplateColumns: '120px 1fr', gap: '12px', padding: '10px 0', borderTop: '1px solid var(--border)' } },
-      h('div', null, h('b', { class: 'ltr' }, fmtTime(b.hour) + ' – ' + fmtTime(b.hour + 3600)), h('div', { class: 'faint', style: { fontSize: '11.5px' } }, dur(b.minutes) + ' · ' + num(b.reqs) + ' ' + t('requests'))),
-      h('div', { class: 'pill-list' }, b.sites.map((s) => h('span', { class: 'chip', title: s.domain + ' · ' + catName(s.category) },
-        h('span', { class: 'dot', style: { background: catColor(s.category) } }), h('span', { class: 'mono', style: { fontSize: '11.5px' } }, s.domain), h('span', { class: 'faint' }, num(s.reqs)))))))));
-  } else vc.append(empty());
-  page.append(vc);
+  // what was visited, hour by hour
+  const vc = t0.blocks.length
+    ? h('div', null, t0.blocks.map((b) => h('div', { style: { display: 'grid', gridTemplateColumns: '130px minmax(0, 1fr)', gap: '12px', padding: '10px 0', borderTop: '1px solid var(--rule)' } },
+      h('div', null, h('b', { class: 'ltr' }, fmtTime(b.hour) + ' - ' + fmtTime(b.hour + 3600)), h('div', { class: 'faint small' }, dur(b.minutes)), h('div', { class: 'faint small' }, num(b.reqs) + ' ' + t('requests'))),
+      h('div', { class: 'row', style: { gap: '6px' } }, b.sites.map((s) => h('span', { class: 'tag', title: catName(s.category) + (s.service ? ', ' + s.service : '') },
+        h('span', { class: 'mono' }, s.domain), h('span', { class: 'faint' }, num(s.reqs)))))))) : empty(t('no_data'));
+  page.append(panel(t('tl.visited'), vc, t('tl.visited_hint')));
   return page;
 }
 
 // ---------------------------------------------------------------- sites
 
-let siteQuery = '';
-let siteCat = '';
 async function sites(id, ctx) {
   const page = h('div', { class: 'stack' });
   const body = h('div');
   const limit = 100;
-  let offset = 0;
+  let q = queryGet('q');
+  let cat = queryGet('cat');
+  let offset = Number(queryGet('off', '0')) || 0;
   const load = async () => {
-    const r = await api.get(`users/${id}/sites`, { from: ctx.range.from, to: ctx.range.to, q: siteQuery, category: siteCat, limit, offset });
-    body.replaceChildren(h('div', { class: 'card flush' },
-      r.sites.length ? siteTable(r.sites) : empty(),
-      r.total > limit ? h('div', { class: 'row', style: { padding: '12px 18px', justifyContent: 'space-between' } },
+    const r = await api.get(`users/${id}/sites`, { from: ctx.range.from, to: ctx.range.to, q, category: cat, limit, offset });
+    const inner = h('div', null,
+      r.sites.length ? siteTable(r.sites) : empty(t('sites.none'), t('sites.none_hint')),
+      r.total > limit ? h('div', { class: 'row', style: { padding: '12px 16px', justifyContent: 'space-between' } },
         h('span', { class: 'muted' }, t('showing', { a: num(offset + 1), b: num(Math.min(offset + limit, r.total)), c: num(r.total) })),
         h('div', { class: 'row' },
-          h('button', { class: 'btn sm', disabled: offset === 0 || null, onclick: () => { offset = Math.max(0, offset - limit); load(); } }, t('prev')),
-          h('button', { class: 'btn sm', disabled: offset + limit >= r.total || null, onclick: () => { offset += limit; load(); } }, t('next')))) : null));
+          h('button', { class: 'btn sm', disabled: offset === 0 || null, onclick: () => { offset = Math.max(0, offset - limit); queryPut({ off: offset || '' }); load(); } }, t('prev')),
+          h('button', { class: 'btn sm', disabled: offset + limit >= r.total || null, onclick: () => { offset += limit; queryPut({ off: offset }); load(); } }, t('next')))) : null);
+    const p = panel(null, inner, null, true);
+    p.querySelector('.pb').style.padding = '0';
+    body.replaceChildren(p);
   };
   const cats = state.meta.categories.map((c) => c.id);
   page.append(h('div', { class: 'row' },
-    h('input', { class: 'input', style: { maxWidth: '300px' }, placeholder: t('sites.search'), value: siteQuery, oninput: debounce((e) => { siteQuery = e.target.value; offset = 0; load(); }, 200) }),
-    h('select', { class: 'input', style: { maxWidth: '200px' }, onchange: (e) => { siteCat = e.target.value; offset = 0; load(); } },
-      h('option', { value: '' }, t('sites.all_cats')), cats.map((c) => h('option', { value: c, selected: siteCat === c || null }, catName(c))))), body);
+    h('input', { class: 'input', type: 'search', style: { maxWidth: '300px' }, placeholder: t('sites.search'), 'aria-label': t('sites.search'), value: q, oninput: debounce((e) => { q = e.target.value; offset = 0; queryPut({ q, off: '' }); load(); }, 200) }),
+    h('select', { class: 'input', style: { maxWidth: '200px' }, 'aria-label': t('sites.all_cats'), onchange: (e) => { cat = e.target.value; offset = 0; queryPut({ cat, off: '' }); load(); } },
+      h('option', { value: '' }, t('sites.all_cats')), cats.map((c) => h('option', { value: c, selected: cat === c || null }, catName(c))))), body);
   await load();
   return page;
 }
@@ -274,50 +261,47 @@ function network(r) {
   const limit = cc.limit;
   const over = limit > 0 && cc.max > limit;
 
-  page.append(h('div', { class: 'grid g4' },
-    kpi('globe', '', num(r.ips.length), t('net.ips'), t('net.in_range')),
-    kpi('device', over ? 'bad' : 'ok', num(cc.max), t('net.max_conc'), limit ? t('net.limit', { n: num(limit) }) : t('net.no_limit')),
-    kpi('device', '', num(r.devices.length), t('net.devices'), t('net.devices_hint')),
-    kpi('warn', cc.overlaps.length ? 'warn' : 'ok', num(cc.overlaps.length), t('net.overlaps'), t('net.overlaps_hint'))));
+  page.append(stats([
+    { v: num(r.ips.length), l: t('net.ips'), s: t('net.in_range') },
+    { v: num(cc.max), l: t('net.max_conc'), s: limit ? t('net.limit', { n: num(limit) }) + (over ? ', ' + t('net.over_limit') : '') : t('net.no_limit') },
+    { v: num(r.devices.length), l: t('net.devices'), s: t('net.devices_hint') },
+    { v: num(cc.overlaps.length), l: t('net.overlaps'), s: t('net.overlaps_hint') },
+  ]));
 
-  // IPs
-  const ipc = h('div', { class: 'card flush' }, h('h2', null, t('net.ip_history'), h('span', { class: 'hint' }, t('net.ip_hint'))));
-  ipc.append(r.ips.length ? h('div', { class: 'table-wrap' }, h('table', null,
+  const ipc = r.ips.length ? h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' },
     h('thead', null, h('tr', null, ['col.ip', 'col.country', 'col.network', 'col.first', 'col.last', 'col.active', 'col.sessions', 'col.device'].map((k, i) => h('th', { class: i >= 5 && i <= 6 ? 'num' : '' }, t(k))))),
     h('tbody', null, r.ips.map((ip) => h('tr', null,
-      h('td', null, h('span', { class: 'status-dot' + (ip.online ? ' on' : ''), style: { marginInlineEnd: '8px' } }), h('a', { class: 'mono', href: '#/ips?ip=' + encodeURIComponent(ip.ip) }, ip.ip), ip.cdn ? h('span', { class: 'chip warn', style: { marginInlineStart: '8px' }, title: t('cdn.hint') }, ip.cdn) : null),
-      h('td', null, ip.country ? flag(ip.country) + ' ' + ip.country : '—'),
-      h('td', { class: 'muted', style: { maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis' }, title: ip.org }, ip.org || '—'),
+      h('td', null, h('a', { class: 'mono', href: '#/ips?ip=' + encodeURIComponent(ip.ip) }, ip.ip), ' ', ip.online ? tag(t('online'), 'ok') : null, ip.cdn ? [' ', tag(ip.cdn, 'warn', t('cdn.hint'))] : null),
+      h('td', null, ip.country ? (flag(ip.country) + ' ' + ip.country).trim() : h('span', { class: 'faint' }, '-')),
+      h('td', { class: 'muted', style: { maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis' }, title: ip.org }, ip.org || '-'),
       h('td', { class: 'muted' }, fmtDateTime(ip.first)),
       h('td', { class: 'muted' }, fmtDateTime(ip.last)),
       h('td', { class: 'num' }, dur(ip.minutes)),
       h('td', { class: 'num' }, num(ip.sessions)),
-      h('td', null, (ip.devices || []).length ? h('div', { class: 'row', style: { gap: '5px' } }, ip.devices.map((d) => deviceChip(d))) : h('span', { class: 'faint' }, '—'))))))) : empty());
-  page.append(ipc);
+      h('td', null, (ip.devices || []).length ? h('div', { class: 'row', style: { gap: '4px' } }, ip.devices.map((d) => deviceTag(d))) : h('span', { class: 'faint' }, '-'))))))) : empty(t('no_data'));
+  page.append(panel(t('net.ip_history'), ipc, t('net.ip_hint'), true));
 
-  // devices
-  const dv = h('div', { class: 'card' }, h('h2', null, t('net.device_guess'), h('span', { class: 'hint' }, t('net.device_guess_hint'))));
-  dv.append(r.devices.length ? h('div', { class: 'pill-list' }, r.devices.map((d) => deviceChip({ ...d }, d.ips))) : h('div', { class: 'muted' }, t('net.no_devices')));
-  page.append(dv);
+  const dv = r.devices.length
+    ? h('div', { class: 'row', style: { gap: '6px' } }, r.devices.map((d) => deviceTag(d, d.ips)))
+    : h('div', { class: 'muted' }, t('net.no_devices'));
+  page.append(panel(t('net.device_guess'), dv, t('net.device_guess_hint')));
 
-  // overlaps
-  const oc = h('div', { class: 'card flush' }, h('h2', null, t('net.overlap_list'), h('span', { class: 'hint' }, over ? t('net.over_limit') : '')));
-  oc.append(cc.overlaps.length ? h('div', { class: 'table-wrap' }, h('table', null,
+  const oc = cc.overlaps.length ? h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' },
     h('thead', null, h('tr', null, ['col.start', 'col.end', 'col.duration', 'col.ips_at_once', 'col.ips'].map((k) => h('th', null, t(k))))),
     h('tbody', null, cc.overlaps.slice(0, 100).map((o) => h('tr', null,
       h('td', { class: 'muted' }, fmtDateTime(o.start)), h('td', { class: 'muted' }, fmtDateTime(o.end)),
       h('td', null, dur(Math.round((o.end - o.start) / 60))),
-      h('td', null, h('span', { class: 'chip ' + (limit && o.peak > limit ? 'bad' : '') }, num(o.peak))),
-      h('td', { class: 'mono', style: { whiteSpace: 'normal' } }, o.ips.join(', ')))))))
-    : empty(t('net.no_overlaps')));
-  page.append(oc);
+      h('td', null, limit && o.peak > limit ? tag(num(o.peak), 'bad') : num(o.peak)),
+      h('td', { class: 'mono wrap' }, o.ips.join(', ')))))))
+    : empty(t('net.no_overlaps'));
+  page.append(panel(t('net.overlap_list'), oc, over ? t('net.over_limit') : '', true));
   return page;
 }
 
-function deviceChip(d, count) {
-  const label = [d.os + (d.vendor ? ' (' + d.vendor + ')' : ''), d.browser].filter(Boolean).join(' · ');
-  return h('span', { class: 'chip primary', title: t('confidence', { p: num(d.confidence * 100) }) }, icon('device'), label,
-    h('span', { class: 'faint' }, num(d.confidence * 100) + '%'), count ? h('span', { class: 'faint' }, '× ' + num(count)) : null);
+function deviceTag(d, count) {
+  const label = [d.os + (d.vendor ? ' (' + d.vendor + ')' : ''), d.browser].filter(Boolean).join(', ');
+  return h('span', { class: 'tag acc', title: t('confidence', { p: num(d.confidence * 100) }) }, label,
+    h('span', { class: 'faint' }, num(d.confidence * 100) + '%'), count ? h('span', { class: 'faint' }, 'x' + num(count)) : null);
 }
 
 // ---------------------------------------------------------------- sleep
@@ -326,25 +310,22 @@ function sleep(r) {
   const s = r.sleep;
   const page = h('div', { class: 'stack' });
   if (!s.days_analyzed) {
-    page.append(h('div', { class: 'card' }, h('div', { class: 'alert' }, t('sl.not_enough', { n: num(r.sleep_window_days) })), h('p', { class: 'muted' }, t('sl.method'))));
+    page.append(panel(null, empty(t('sl.not_enough', { n: num(r.sleep_window_days) }), t('sl.method'))));
     return page;
   }
-  const conf = s.confidence;
-  page.append(h('div', { class: 'grid g4' },
-    kpi('moon', '', digits(s.typical_start), t('sl.bedtime'), t('sl.std', { m: num(s.std_minutes) })),
-    kpi('sun', 'warn', digits(s.typical_end), t('sl.wake'), t('sl.nights', { n: num(s.days_analyzed) })),
-    kpi('clock', 'ok', dur(s.avg_minutes), t('sl.duration'), t('sl.window', { n: num(r.sleep_window_days) })),
-    kpi('shield', conf >= 0.6 ? 'ok' : 'warn', num(conf * 100) + '%', t('sl.confidence'), t('sl.connected_share', { p: num(s.connected_share * 100) }))));
-
+  page.append(stats([
+    { v: digits(s.typical_start), l: t('sl.bedtime'), s: t('sl.std', { m: num(s.std_minutes) }) },
+    { v: digits(s.typical_end), l: t('sl.wake'), s: t('sl.nights', { n: num(s.days_analyzed) }) },
+    { v: dur(s.avg_minutes), l: t('sl.duration'), s: t('sl.window', { n: num(r.sleep_window_days) }) },
+    { v: num(s.confidence * 100) + '%', l: t('sl.confidence'), s: t('sl.connected_share', { p: num(s.connected_share * 100) }) },
+  ]));
   page.append(h('div', { class: 'alert' }, t('sl.explain')));
 
-  // nightly rows on a noon-to-noon axis
-  const card = h('div', { class: 'card' }, h('h2', null, t('sl.nightly'), h('span', { class: 'hint' }, t('sl.nightly_hint'))));
+  const card = h('div');
   const ticks = [12, 15, 18, 21, 0, 3, 6, 9, 12];
   card.append(h('div', { class: 'sleep-axis' }, h('div'), h('div', { class: 'ticks' }, ticks.map((hr, i) => h('span', { style: { left: (i / 8) * 100 + '%' } }, String(hr).padStart(2, '0')))), h('div')));
   const days = [...s.days].reverse();
   for (const d of days) {
-    // minutes since the previous noon, using the display timezone clock
     const startSec = d.start * 60, endSec = d.end * 60;
     const noon = noonBefore(d.date);
     const left = Math.max(0, ((startSec - noon) / 86400) * 100);
@@ -353,25 +334,24 @@ function sleep(r) {
       h('div', { class: 'd' }, fmtDateStr(d.date, { month: 'short', day: 'numeric', weekday: 'short' })),
       h('div', { class: 'sleep-track' },
         h('div', { class: 'night', style: { left: '37.5%', width: '33.3%' } }),
-        h('div', { class: 'sl ' + d.kind + (d.atypical ? ' atyp' : ''), style: { left: left + '%', width: width + '%' }, title: `${fmtTime(startSec)} → ${fmtTime(endSec)} · ${dur(d.minutes)}` })),
-      h('div', { class: 'faint', dir: isFa() ? 'rtl' : 'ltr', style: { fontSize: '11.5px', textAlign: 'start' } },
-        h('span', { dir: 'ltr', style: { unicodeBidi: 'isolate' } }, `${fmtTime(startSec)}–${fmtTime(endSec)}`), ' · ', dur(d.minutes))));
+        h('div', { class: 'sl ' + d.kind + (d.atypical ? ' atyp' : ''), style: { left: left + '%', width: width + '%' }, title: `${fmtTime(startSec)} - ${fmtTime(endSec)}, ${dur(d.minutes)}` })),
+      h('div', { class: 'faint small', dir: isFa() ? 'rtl' : 'ltr', style: { textAlign: 'start' } },
+        h('span', { dir: 'ltr', style: { unicodeBidi: 'isolate' } }, `${fmtTime(startSec)} - ${fmtTime(endSec)}`), '  ', dur(d.minutes))));
   }
   card.append(h('div', { class: 'legend' },
-    h('span', null, h('i', { style: { background: 'var(--warn)' } }), t('sl.kind.connected')),
-    h('span', null, h('i', { style: { background: 'var(--primary)' } }), t('sl.kind.offline')),
-    h('span', null, h('i', { style: { background: 'var(--primary)', opacity: .45 } }), t('sl.kind.atypical'))));
-  page.append(card);
+    h('span', null, h('i', { class: 'swatch', style: { background: 'var(--warn)' } }), t('sl.kind.connected')),
+    h('span', null, h('i', { class: 'swatch', style: { background: 'var(--d1)' } }), t('sl.kind.offline')),
+    h('span', null, h('i', { class: 'swatch', style: { background: 'var(--d1)', opacity: 0.45 } }), t('sl.kind.atypical'))));
+  page.append(panel(t('sl.nightly'), card, t('sl.nightly_hint')));
 
-  const tc = h('div', { class: 'card flush' }, h('h2', null, t('sl.table')));
-  tc.append(h('div', { class: 'table-wrap' }, h('table', null,
+  const tc = h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' },
     h('thead', null, h('tr', null, ['col.date', 'col.from', 'col.to', 'col.duration', 'sl.kind', 'sl.bg_minutes', 'sl.awakenings'].map((k) => h('th', null, t(k))))),
-    h('tbody', null, days.reverse().map((d) => h('tr', null,
+    h('tbody', null, [...days].reverse().map((d) => h('tr', null,
       h('td', null, fmtDateStr(d.date, { month: 'short', day: 'numeric' })),
       h('td', null, fmtTime(d.start * 60)), h('td', null, fmtTime(d.end * 60)), h('td', null, dur(d.minutes)),
-      h('td', null, h('span', { class: 'chip ' + (d.kind === 'connected' ? 'warn' : '') }, t('sl.kind.' + d.kind)), d.atypical ? h('span', { class: 'chip', style: { marginInlineStart: '6px' } }, t('sl.kind.atypical')) : null),
-      h('td', null, num(d.present)), h('td', null, num(d.awakenings))))))));
-  page.append(tc);
+      h('td', null, tag(t('sl.kind.' + d.kind), d.kind === 'connected' ? 'warn' : ''), d.atypical ? [' ', tag(t('sl.kind.atypical'))] : null),
+      h('td', null, num(d.present)), h('td', null, num(d.awakenings)))))));
+  page.append(panel(t('sl.table'), tc, null, true));
   return page;
 }
 
@@ -381,7 +361,6 @@ function noonBefore(date) {
   const prev = new Date(date + 'T12:00:00Z');
   prev.setUTCDate(prev.getUTCDate() - 1);
   const ds = prev.toISOString().slice(0, 10);
-  // find the instant whose display-timezone clock reads 12:00 on ds
   let guess = Date.parse(ds + 'T12:00:00Z') / 1000;
   const parts = (sec) => {
     const p = new Intl.DateTimeFormat('en-GB', { timeZone: state.meta.timezone && state.meta.timezone !== 'Local' ? state.meta.timezone : undefined, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(sec * 1000));

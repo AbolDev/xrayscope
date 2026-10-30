@@ -213,7 +213,9 @@ func (e *Env) Overview(ctx ctxT, rg Range) (*Overview, error) {
 		for _, u := range online {
 			o.Totals.IPsNow += len(u.Conns)
 		}
-		o.Online = head(online, 50)
+		if len(online) > 0 {
+			o.Online = head(online, 50)
+		}
 	}
 	return o, nil
 }
@@ -238,6 +240,22 @@ type UserRow struct {
 	MaxIPs      int    `json:"max_ips"`
 	TopCategory string `json:"top_category"`
 	TopService  string `json:"top_service"`
+	// Spark is the presence strip: active minutes per equal slice of the
+	// window (24 hourly slices for short ranges, up to 30 daily ones).
+	Spark []int `json:"spark"`
+}
+
+// sparkBins returns the strip window and slice count for a range.
+func sparkBins(rg Range) (start int64, n int) {
+	span := rg.To - rg.From
+	if span <= 2*86400 {
+		return rg.To - 24*3600, 24
+	}
+	n = int((span + 86399) / 86400)
+	if n > 30 {
+		n = 30
+	}
+	return rg.From, n
 }
 
 // Users builds the users table for a range.
@@ -282,14 +300,23 @@ func (e *Env) Users(ctx ctxT, rg Range) ([]UserRow, error) {
 			online[o.UserID] = o
 		}
 	}
+	sparkStart, sparkN := sparkBins(rg)
 	out := make([]UserRow, 0, len(users))
 	for _, u := range users {
 		r := UserRow{User: u, Up: up[u.ID], Down: down[u.ID]}
 		if o, ok := online[u.ID]; ok {
 			r.Online, r.OnlineIPs = true, len(o.Conns)
 		}
+		r.Spark = make([]int, sparkN)
 		if rs := byUser[u.ID]; len(rs) > 0 {
-			r.Minutes = int64(len(analytics.UnionMinutes(rs, analytics.Presence)))
+			pres := analytics.UnionMinutes(rs, analytics.Presence)
+			r.Minutes = int64(len(pres))
+			width := float64(rg.To-sparkStart) / float64(sparkN)
+			for _, m := range pres {
+				if i := int(float64(m*60-sparkStart) / width); i >= 0 && i < sparkN {
+					r.Spark[i]++
+				}
+			}
 			r.Interactive = int64(len(analytics.UnionMinutes(rs, analytics.Interactive)))
 			ipset := map[int64]bool{}
 			for _, x := range rs {

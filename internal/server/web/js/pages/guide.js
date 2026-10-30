@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { h, t, toast, icon, num, isFa } from '../util.js';
+import { h, t, toast, icon, num, tag, panel } from '../util.js';
 
 const SNIPPETS = {
   1: '"log": {\n  "access": "/var/log/xray/access.log",\n  "loglevel": "warning"\n}',
@@ -53,17 +53,17 @@ export async function guidePage() {
   for (const n of [1, 2, 3]) {
     const state = res[n];
     const tone = { ok: 'ok', warn: 'warn', unknown: '' }[state];
-    const card = h('div', { class: 'card' },
-      h('h2', null, h('span', { class: 'chip primary' }, String(n)), t(`g.${n}.title`),
-        h('span', { class: 'hint' }, h('span', { class: 'chip ' + tone }, t('g.' + state)), ' ', detail(n, st, state))),
-      h('p', { style: { marginTop: 0 } }, t(`g.${n}.text`)),
-      h('div', { class: 'muted', style: { fontWeight: 600, marginBottom: '4px' } }, t('g.steps')),
-      h('ol', { style: { margin: '0 0 12px', paddingInlineStart: '22px', lineHeight: 1.9 } },
-        Array.from({ length: STEPS[n] }, (_, i) => h('li', null, t(`g.${n}.s${i + 1}`)))),
-      h('div', { class: 'muted', style: { fontWeight: 600, marginBottom: '4px' } }, t('g.snippet')),
-      h('div', { class: 'code' }, SNIPPETS[n]),
-      h('div', { class: 'row', style: { marginTop: '8px' } }, copyBtn(SNIPPETS[n]), h('span', { class: 'help muted' }, t(`g.${n}.note`))));
-    page.append(card);
+    const body = h('div', { class: 'guide-step' },
+      h('div', { class: 'n' }, String(n)),
+      h('div', null,
+        h('p', { style: { marginTop: 0 } }, t(`g.${n}.text`)),
+        h('div', { class: 'muted', style: { fontWeight: 600, marginBottom: '4px' } }, t('g.steps')),
+        h('ol', { style: { margin: '0 0 12px', paddingInlineStart: '22px', lineHeight: 1.9 } },
+          Array.from({ length: STEPS[n] }, (_, i) => h('li', null, t(`g.${n}.s${i + 1}`)))),
+        h('div', { class: 'muted', style: { fontWeight: 600, marginBottom: '4px' } }, t('g.snippet')),
+        h('div', { class: 'code' }, SNIPPETS[n]),
+        h('div', { class: 'row', style: { marginTop: '8px' } }, copyBtn(SNIPPETS[n]), h('span', { class: 'muted small' }, t(`g.${n}.note`)))));
+    page.append(panel(t(`g.${n}.title`), body, h('span', null, detail(n, st, state), ' ', tag(t('g.' + state), tone))));
   }
   page.append(h('div', { class: 'alert warn' }, t('g.restart')));
   return page;

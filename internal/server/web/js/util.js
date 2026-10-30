@@ -183,10 +183,41 @@ export function setRange(key, custom) {
 
 // ---------------------------------------------------------------- misc
 
-export const catColor = (id) => {
-  const c = state.meta && state.meta.categories.find((x) => x.id === id);
-  return c ? c.color : '#94a3b8';
-};
+// Data colours: one accent and a lightness ramp of it, never a rainbow.
+export const ramp = (i) => `var(--d${Math.min(5, Math.max(1, i + 1))})`;
+
+// tag renders a short status label (text, never a bare coloured dot).
+export const tag = (text, tone, title) => h('span', { class: 'tag' + (tone ? ' ' + tone : ''), title }, text);
+
+// stats renders the figure strip: [{v, l, s}].
+export function stats(items) {
+  return h('div', { class: 'stats' }, items.map((x) => h('div', { class: 'stat' },
+    h('div', { class: 'v' }, x.v), h('div', { class: 'l' }, x.l), x.s ? h('div', { class: 's' }, x.s) : null)));
+}
+
+// panel builds a titled container. aside is optional text on the far side.
+export function panel(title, body, aside, flush) {
+  return h('section', { class: 'panel' + (flush ? ' flush' : '') },
+    title ? h('div', { class: 'ph' }, h('h2', null, title), aside != null ? h('span', { class: 'aside' }, aside) : null) : null,
+    h('div', { class: 'pb' }, body));
+}
+
+// URL state: filters, tabs and paging live in the hash query so a view can
+// be shared and survives a reload. Updates do not re-render the page.
+export function queryGet(name, def = '') {
+  const q = new URLSearchParams((location.hash.split('?')[1] || ''));
+  return q.get(name) ?? def;
+}
+export function queryPut(values) {
+  const [path, query = ''] = location.hash.split('?');
+  const q = new URLSearchParams(query);
+  for (const [k, v] of Object.entries(values)) {
+    if (v === '' || v == null) q.delete(k); else q.set(k, v);
+  }
+  const s = q.toString();
+  history.replaceState(null, '', path + (s ? '?' + s : ''));
+}
+
 export const catName = (id) => t('cat.' + id);
 export const isBgCat = (id) => { const c = state.meta && state.meta.categories.find((x) => x.id === id); return !!(c && c.background); };
 
@@ -213,7 +244,7 @@ export function modal(title, body, actions) {
   const bg = h('div', { class: 'modal-bg', onclick: (e) => { if (e.target === bg) close(); } },
     h('div', { class: 'modal', role: 'dialog' }, h('h3', null, title), body,
       h('div', { class: 'actions' }, (actions || []).map((a) => h('button', {
-        class: 'btn ' + (a.kind || ''),
+        class: 'btn ' + (a.kind === 'primary' ? 'pri' : a.kind || ''),
         onclick: async () => { if (!a.onclick || (await a.onclick(close)) !== false) close(); },
       }, a.label)))));
   document.body.append(bg);
@@ -229,8 +260,15 @@ export function confirmBox(title, text, danger) {
   });
 }
 
-export function empty(text) {
-  return h('div', { class: 'empty' }, icon('inbox'), h('div', null, text || t('no_data')));
+// empty says what belongs here and, when there is one, the action that fills it.
+export function empty(text, hint, action) {
+  return h('div', { class: 'empty' }, h('b', null, text || t('no_data')), hint ? h('div', null, hint) : null, action || null);
+}
+
+// failure is the error state of a region: what broke and what to do.
+export function failure(message, retry) {
+  return h('div', { class: 'empty' }, h('b', null, t('err.title')), h('div', null, message),
+    retry ? h('button', { class: 'btn', onclick: retry }, icon('refresh'), t('err.retry')) : null);
 }
 
 // Inline SVG icons (stroke style).

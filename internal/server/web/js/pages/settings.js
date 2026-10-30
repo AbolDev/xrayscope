@@ -27,7 +27,7 @@ export async function settingsPage(ctx) {
   // ---- general
   const tz = h('input', { class: 'input', list: 'tzlist', value: s.display_timezone, dir: 'ltr', oninput: (e) => { s.display_timezone = e.target.value.trim(); } });
   const general = h('div', { class: 'card' }, h('h2', null, t('set.general')),
-    h('div', { class: 'grid g2' },
+    h('div', { class: 'cols c2' },
       field(t('set.tz'), h('div', null, tz, h('datalist', { id: 'tzlist' }, TZS.map((z) => h('option', { value: z })))), t('set.tz_help')),
       field(t('set.server_lang'), h('select', { class: 'input', onchange: (e) => { s.language = e.target.value; } },
         h('option', { value: 'fa', selected: s.language === 'fa' || null }, 'فارسی'), h('option', { value: 'en', selected: s.language === 'en' || null }, 'English')), t('set.server_lang_help')),
@@ -42,7 +42,7 @@ export async function settingsPage(ctx) {
   const apiBase = h('input', { class: 'input', dir: 'ltr', value: tg.api_base || '', placeholder: 'https://api.telegram.org', oninput: (e) => { tg.api_base = e.target.value.trim(); } });
   const telegram = h('div', { class: 'card' }, h('h2', null, t('set.telegram')),
     h('div', { style: { marginBottom: '14px' } }, sw(t('set.tg_enabled'), tg.enabled, (v) => { tg.enabled = v; })),
-    h('div', { class: 'grid g2' },
+    h('div', { class: 'cols c2' },
       field(t('set.tg_token'), token, t('set.tg_token_help')),
       field(t('set.tg_chats'), chats, t('set.tg_chats_help')),
       field(t('set.tg_proxy'), proxy, t('set.tg_proxy_help')),
@@ -97,7 +97,7 @@ export async function settingsPage(ctx) {
   drawRules();
   const rulesCard = h('div', { class: 'card' }, h('h2', null, t('set.rules')),
     h('p', { class: 'muted', style: { marginTop: 0 } }, t('set.rules_intro')),
-    h('div', { class: 'table-wrap' }, h('table', null, h('thead', null, h('tr', null, [t('set.rule_domain'), t('set.rule_cat'), t('set.rule_service'), ''].map((x) => h('th', null, x)))), ruleBody)),
+    h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' }, h('thead', null, h('tr', null, [t('set.rule_domain'), t('set.rule_cat'), t('set.rule_service'), ''].map((x) => h('th', null, x)))), ruleBody)),
     h('div', { class: 'row', style: { marginTop: '12px' } },
       h('button', { class: 'btn', onclick: () => { s.custom_rules.push({ domain: '', category: 'other', service: '' }); drawRules(); } }, icon('plus'), t('set.rule_add')),
       h('button', { class: 'btn', onclick: async () => {
@@ -111,7 +111,7 @@ export async function settingsPage(ctx) {
   const bk = s.backup, rt = s.retention;
   const backups = h('div', { class: 'card' }, h('h2', null, t('set.backup')),
     h('div', { style: { marginBottom: '14px' } }, sw(t('set.bk_enabled'), bk.enabled, (v) => { bk.enabled = v; })),
-    h('div', { class: 'grid g2' },
+    h('div', { class: 'cols c2' },
       field(t('set.bk_interval'), numInput(bk.interval_hours, (v) => { bk.interval_hours = v; }, 1)),
       field(t('set.bk_keep'), numInput(bk.keep, (v) => { bk.keep = v; }, 1)),
       field(t('set.rt_visits'), numInput(rt.visits_hourly_days, (v) => { rt.visits_hourly_days = v; }, 2), t('set.rt_visits_help')),
@@ -122,14 +122,14 @@ export async function settingsPage(ctx) {
   const oldPw = h('input', { class: 'input', type: 'password', autocomplete: 'current-password', dir: 'ltr' });
   const newPw = h('input', { class: 'input', type: 'password', autocomplete: 'new-password', dir: 'ltr' });
   const account = h('div', { class: 'card' }, h('h2', null, t('set.account')),
-    h('div', { class: 'grid g2' }, field(t('set.old_pw'), oldPw), field(t('set.new_pw'), newPw, t('set.new_pw_help'))),
+    h('div', { class: 'cols c2' }, field(t('set.old_pw'), oldPw), field(t('set.new_pw'), newPw, t('set.new_pw_help'))),
     h('button', { class: 'btn', onclick: async () => {
       const r = await guard(() => api.post('password', { old: oldPw.value, new: newPw.value }));
       if (r) { toast(t('set.pw_changed'), 'ok'); setTimeout(() => location.reload(), 800); }
     } }, t('set.change_pw')));
 
   const saveBar = h('div', { class: 'row', style: { position: 'sticky', bottom: '12px', justifyContent: 'flex-end', zIndex: 5 } },
-    h('button', { class: 'btn primary', style: { boxShadow: 'var(--shadow)', padding: '10px 22px' }, onclick: async () => {
+    h('button', { class: 'btn pri', style: { boxShadow: 'var(--shadow)', padding: '10px 22px' }, onclick: async () => {
       if (await save(s, token)) { toast(t('set.saved'), 'ok'); state.meta = await api.get('meta'); }
     } }, t('save')));
 
