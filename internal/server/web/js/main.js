@@ -10,6 +10,7 @@ import { eventsPage } from './pages/events.js';
 import { nodesPage } from './pages/nodes.js';
 import { settingsPage } from './pages/settings.js';
 import { systemPage } from './pages/system.js';
+import { guidePage } from './pages/guide.js';
 
 const root = document.getElementById('app');
 
@@ -20,6 +21,7 @@ const ROUTES = [
   { path: 'ips', icon: 'globe', page: ipsPage, range: true },
   { path: 'events', icon: 'bell', page: eventsPage, live: 30 },
   { path: 'nodes', icon: 'server', page: nodesPage, live: 30 },
+  { path: 'guide', icon: 'shield', page: guidePage, live: 30 },
   { path: 'system', icon: 'database', page: systemPage, live: 30 },
   { path: 'settings', icon: 'settings', page: settingsPage },
 ];

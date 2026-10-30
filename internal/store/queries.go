@@ -245,6 +245,16 @@ func (s *Store) UserCountryFirstHour(ctx context.Context, userID int64, country 
 	return h.Int64, err
 }
 
+// DestShare returns how many requests since fromHour went to raw IP
+// addresses (no domain name known) and how many in total.
+func (s *Store) DestShare(ctx context.Context, fromHour int64) (ipReqs, total int64, err error) {
+	var ip, all sql.NullInt64
+	err = s.r.QueryRowContext(ctx, `SELECT
+		SUM(CASE WHEN d.category='ip' THEN v.reqs ELSE 0 END), SUM(v.reqs)
+		FROM visits v JOIN domains d ON d.id=v.domain_id WHERE v.g=0 AND v.slot>=?`, fromHour).Scan(&ip, &all)
+	return ip.Int64, all.Int64, err
+}
+
 // SvcRow is time spent on one service in one hour.
 type SvcRow struct {
 	Hour      int64

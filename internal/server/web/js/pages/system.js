@@ -36,7 +36,8 @@ export async function systemPage(ctx) {
     kpi('clock', 'warn', dur(Math.floor(st.uptime / 60)), t('sys.uptime'), 'v' + st.version)));
   if (st.cdn_ips > 0 && st.cdn_ips * 2 >= st.online_ips) {
     page.append(h('div', { class: 'alert warn' }, h('b', null, t('sys.cdn_title')), h('div', { style: { marginTop: '4px' } }, t('sys.cdn_text')),
-      h('div', { class: 'code', style: { marginTop: '8px' } }, 'CF-Connecting-IP\nAR-Real-IP\nX-Real-IP\nX-Forwarded-For')));
+      h('div', { class: 'code', style: { marginTop: '8px' } }, 'CF-Connecting-IP\nAR-Real-IP\nX-Real-IP\nX-Forwarded-For'),
+      h('a', { href: '#/guide', class: 'btn sm', style: { marginTop: '10px' } }, t('nav.guide'))));
   }
   page.append(h('div', { class: 'grid g2' }, logCard, panelCard));
   if (st.db.first_hour) {

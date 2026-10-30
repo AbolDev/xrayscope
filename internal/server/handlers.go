@@ -137,26 +137,29 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	if len(list) > 0 {
 		last = &list[0]
 	}
+	ipDest, destTotal, _ := a.Store.DestShare(ctx, time.Now().Unix()/3600-24)
 	var lastLine int64
 	if t := a.LastLineAt(); !t.IsZero() {
 		lastLine = t.Unix()
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"version":    a.Version,
-		"uptime":     int64(time.Since(a.Started).Seconds()),
-		"now":        time.Now().Unix(),
-		"log":        a.LogState(),
-		"last_line":  lastLine,
-		"lines":      a.LinesTotal(),
-		"panel":      a.PanelState(),
-		"db":         st,
-		"online":     len(online),
-		"online_ips": ips,
-		"cdn_ips":    behindCDN,
-		"nodes":      ns,
-		"backups":    map[string]any{"count": len(list), "last": last, "pending_restore": backup.HasPending(a.Cfg.DataDir)},
-		"telegram":   a.Bot.Enabled(),
-		"geo":        a.Geo != nil,
+		"version":          a.Version,
+		"uptime":           int64(time.Since(a.Started).Seconds()),
+		"now":              time.Now().Unix(),
+		"log":              a.LogState(),
+		"last_line":        lastLine,
+		"lines":            a.LinesTotal(),
+		"panel":            a.PanelState(),
+		"db":               st,
+		"online":           len(online),
+		"online_ips":       ips,
+		"cdn_ips":          behindCDN,
+		"dest_ip_requests": ipDest,
+		"dest_requests":    destTotal,
+		"nodes":            ns,
+		"backups":          map[string]any{"count": len(list), "last": last, "pending_restore": backup.HasPending(a.Cfg.DataDir)},
+		"telegram":         a.Bot.Enabled(),
+		"geo":              a.Geo != nil,
 	})
 }
 
