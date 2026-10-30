@@ -6,7 +6,7 @@
     lang = localStorage.getItem('xs.lang');
   } catch (e) {}
   if (!theme) theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  if (lang !== 'en' && lang !== 'fa') lang = 'fa';
+  if (lang !== 'en' && lang !== 'fa') lang = 'en';
   var root = document.documentElement;
   root.setAttribute('data-theme', theme);
   root.setAttribute('lang', lang);

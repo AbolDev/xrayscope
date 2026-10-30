@@ -2,7 +2,7 @@
 import { dict } from './lang.js';
 
 export const state = {
-  lang: load('xs.lang', 'fa'),
+  lang: load('xs.lang', 'en'),
   theme: document.documentElement.getAttribute('data-theme') || 'light',
   meta: null,
   rangeKey: load('xs.range', '24h'),

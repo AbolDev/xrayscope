@@ -95,7 +95,7 @@ type Settings struct {
 // Defaults returns the default settings.
 func Defaults() Settings {
 	return Settings{
-		Language:        "fa",
+		Language:        "en",
 		DisplayTimezone: "Local",
 		SessionGapMin:   5,
 		OnlineWindowMin: 3,
