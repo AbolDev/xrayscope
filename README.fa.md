@@ -38,7 +38,7 @@ XrayScope کنار پنل [3x-ui](https://github.com/MHSanaei/3x-ui) روی هم
 ## نصب
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/OWNER/xrayscope/main/install.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/AbolDev/xrayscope/main/install.sh)
 ```
 
 اسکریپت برنامه را نصب، سرویس systemd را راه‌اندازی، سلامت نصب را بررسی و نشانی پنل و اولین رمز ورود را چاپ می‌کند. برای به‌روزرسانی دوباره اجرایش کنید؛ حذف: `bash install.sh uninstall`.

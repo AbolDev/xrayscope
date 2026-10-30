@@ -39,7 +39,7 @@ Install it next to [3x-ui](https://github.com/MHSanaei/3x-ui), read `access.log`
 ## Install (3x-ui server)
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/OWNER/xrayscope/main/install.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/AbolDev/xrayscope/main/install.sh)
 ```
 
 The script installs the binary to `/usr/local/bin`, writes `/etc/xrayscope/config.json`, creates a systemd service, runs a health check and prints the panel URL and the first login. Re-run it to update; `bash install.sh uninstall [--purge]` removes it.
@@ -81,7 +81,7 @@ xrayscope passwd -c /etc/xrayscope/config.json
 2. Run it on the node:
 
    ```bash
-   bash <(curl -fsSL https://raw.githubusercontent.com/OWNER/xrayscope/main/install.sh) agent \
+   bash <(curl -fsSL https://raw.githubusercontent.com/AbolDev/xrayscope/main/install.sh) agent \
      --server https://panel.example.com --token xs_… --name de-1
    ```
 

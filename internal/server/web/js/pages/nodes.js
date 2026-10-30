@@ -1,7 +1,7 @@
 import { api, guard } from '../api.js';
 import { h, t, num, ago, fmtDateTime, empty, icon, modal, confirmBox, toast, state } from '../util.js';
 
-const INSTALL_CMD = 'bash <(curl -fsSL https://raw.githubusercontent.com/OWNER/xrayscope/main/install.sh)';
+const INSTALL_CMD = 'bash <(curl -fsSL https://raw.githubusercontent.com/AbolDev/xrayscope/main/install.sh)';
 
 export async function nodesPage(ctx) {
   const nodes = await api.get('nodes');

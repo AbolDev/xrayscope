@@ -13,7 +13,7 @@
 #   XRAYSCOPE_BIN       use this local binary instead of downloading
 set -euo pipefail
 
-REPO="${XRAYSCOPE_REPO:-OWNER/xrayscope}"
+REPO="${XRAYSCOPE_REPO:-AbolDev/xrayscope}"
 INSTALL_DIR=/usr/local/bin
 CONF_DIR=/etc/xrayscope
 DATA_DIR=/var/lib/xrayscope
