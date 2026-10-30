@@ -31,7 +31,7 @@ Install it next to [3x-ui](https://github.com/MHSanaei/3x-ui), read `access.log`
 
 ## Why it is light
 
-- One static Go binary (~19 MB), no runtime, no Docker needed, pure-Go SQLite.
+- One static Go binary (~13 MB), no runtime, no Docker needed, pure-Go SQLite.
 - The access log is parsed with zero allocations per line and aggregated per minute **before** it touches the database.
 - Time is stored as 60-bit minute masks per hour, so *one row per user, IP and hour* captures minute-level presence. A 3 million line / 390 MB log becomes a ~9 MB database.
 - Measured on a laptop: **3 million log lines in about 6 s using ~64 MB of RAM** (see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#performance)). On a small VPS the panel idles at a few MB.
