@@ -17,6 +17,14 @@ XrayScope shows which sites individual people visited, when they were online and
 | Upload / download totals over time | Traffic content |
 | Client IPs, optional country / ISP | Browser User-Agent strings (not available to a proxy) |
 
+## Network use
+
+XrayScope works fully offline. The web panel loads nothing from other sites (fonts, scripts and icons are built in, and the Content-Security-Policy forbids external resources); GeoIP uses local database files and CDN detection uses a built-in table. The only outbound connections are ones you switch on or press:
+
+- **Telegram** – only when you configure a bot token.
+- **Update check / update** – only when you press the button in System. It talks to `api.github.com` and `github.com`, through the configured proxy if there is one. Offline, copy the binary to the server and run `XRAYSCOPE_BIN=/path/to/xrayscope bash install.sh`.
+- **Pulled nodes** – only the node addresses you entered.
+
 ## Application security
 
 - One administrator account; passwords are stored with bcrypt, sessions are HMAC-signed, `HttpOnly`, `SameSite=Strict` (and `Secure` over HTTPS); 6 failed logins lock an address for 10 minutes.
