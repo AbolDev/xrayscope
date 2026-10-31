@@ -24,6 +24,7 @@ import (
 	"xrayscope/internal/model"
 	"xrayscope/internal/netutil"
 	"xrayscope/internal/panel"
+	"xrayscope/internal/xraystats"
 )
 
 const maxSpoolBytes = 2 << 30
@@ -95,7 +96,7 @@ func New(cfg config.Config, version string, log *slog.Logger) (*Agent, error) {
 func (a *Agent) Run(ctx context.Context) {
 	var wg sync.WaitGroup
 	for name, f := range map[string]func(context.Context){
-		"tail": a.runTail, "traffic": a.runTraffic, "send": a.runSend,
+		"tail": a.runTail, "traffic": a.runTraffic, "send": a.runSend, "speed": a.runSpeed,
 	} {
 		wg.Add(1)
 		go func() {
@@ -414,6 +415,47 @@ func (a *Agent) send(ctx context.Context, path string) error {
 		return fmt.Errorf("the server rejected the token (HTTP 401); check token in the configuration")
 	default:
 		return fmt.Errorf("HTTP %d", resp.StatusCode)
+	}
+}
+
+// runSpeed samples Xray's statistics API and tells the main server the live
+// speeds every few seconds. Speeds are ephemeral, so nothing is queued.
+func (a *Agent) runSpeed(ctx context.Context) {
+	if a.panel == nil && a.cfg.XrayAPI == "" {
+		return
+	}
+	src := &xraystats.Source{Override: a.cfg.XrayAPI, Find: func() (string, bool) {
+		if p, ok := a.panel.(panel.APIProvider); ok {
+			return p.XrayAPI()
+		}
+		return "", false
+	}}
+	tr := xraystats.NewTracker(src)
+	go tr.Run(ctx, 2*time.Second)
+	tick := time.NewTicker(3 * time.Second)
+	defer tick.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-tick.C:
+		}
+		speeds := map[string][2]int64{}
+		for email, r := range tr.Rates() {
+			speeds[email] = [2]int64{r.Up, r.Down}
+		}
+		body, _ := json.Marshal(map[string]any{"speeds": speeds})
+		url := strings.TrimRight(a.cfg.ServerURL, "/") + "/api/ingest/speed"
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+		if err != nil {
+			continue
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+a.cfg.Token)
+		if resp, err := a.client.Do(req); err == nil {
+			io.Copy(io.Discard, io.LimitReader(resp.Body, 1<<10))
+			resp.Body.Close()
+		}
 	}
 }
 

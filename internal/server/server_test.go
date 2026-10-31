@@ -146,10 +146,14 @@ func TestCollectAndReport(t *testing.T) {
 	var sb strings.Builder
 	for i := 0; i < 20; i++ {
 		ts := now.Add(-time.Duration(i) * time.Minute)
-		sb.WriteString(logLine(ts, "1.1.1.1", "chatgpt.com", "alice"))
+		for k := 0; k < 2; k++ { // a page load makes several requests
+			sb.WriteString(logLine(ts, "1.1.1.1", "chatgpt.com", "alice"))
+		}
 		sb.WriteString(logLine(ts, "1.1.1.1", "settings-win.data.microsoft.com", "alice"))
 		if i < 10 {
-			sb.WriteString(logLine(ts, "2.2.2.2", "i.instagram.com", "alice"))
+			for k := 0; k < 2; k++ {
+				sb.WriteString(logLine(ts, "2.2.2.2", "i.instagram.com", "alice"))
+			}
 		}
 		sb.WriteString(logLine(ts, "3.3.3.3", "www.youtube.com", "bob"))
 	}
@@ -246,6 +250,49 @@ func TestCollectAndReport(t *testing.T) {
 	}
 	if _, b := e.do(t, "GET", "/api/backups", nil); !strings.Contains(string(b), "xrayscope-") {
 		t.Errorf("backups list: %s", b)
+	}
+}
+
+func TestLiveSpeedFromNodes(t *testing.T) {
+	e := newEnv(t)
+	e.login(t)
+	_, b := e.do(t, "POST", "/api/nodes", map[string]string{"name": "fast-1"})
+	var created struct {
+		Token string `json:"token"`
+	}
+	json.Unmarshal(b, &created)
+
+	body := `{"speeds":{"alice":[1000,250000],"bob":[10,20]}}`
+	req, _ := http.NewRequest("POST", e.srv.URL+"/api/ingest/speed", strings.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+created.Token)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil || resp.StatusCode != 200 {
+		t.Fatalf("speed ingest: %v %v", err, resp)
+	}
+	resp.Body.Close()
+	bad, _ := http.NewRequest("POST", e.srv.URL+"/api/ingest/speed", strings.NewReader(body))
+	bad.Header.Set("Authorization", "Bearer nope")
+	if r, _ := http.DefaultClient.Do(bad); r.StatusCode != 401 {
+		t.Fatalf("bad token: %d", r.StatusCode)
+	}
+
+	code, b := e.do(t, "GET", "/api/speed", nil)
+	if code != 200 {
+		t.Fatalf("speed: %d %s", code, b)
+	}
+	var rep struct {
+		Available bool `json:"available"`
+		Total     struct{ Up, Down int64 }
+		Users     []struct {
+			Email    string
+			Up, Down int64
+		}
+	}
+	if err := json.Unmarshal(b, &rep); err != nil {
+		t.Fatal(err)
+	}
+	if !rep.Available || rep.Total.Down != 250020 || len(rep.Users) != 2 || rep.Users[0].Email != "alice" {
+		t.Fatalf("speed report = %s", b)
 	}
 }
 

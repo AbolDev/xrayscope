@@ -26,6 +26,7 @@ import (
 	"xrayscope/internal/settings"
 	"xrayscope/internal/store"
 	"xrayscope/internal/telegram"
+	"xrayscope/internal/xraystats"
 )
 
 // LogState describes the access-log collection.
@@ -71,6 +72,10 @@ type App struct {
 	linesTotal atomic.Int64
 
 	alerts alertState
+
+	// Speed samples Xray's statistics API; SpeedBook adds remote nodes.
+	Speed     *xraystats.Tracker
+	SpeedBook *SpeedBook
 
 	// RestartFn is called to restart the process (set by main).
 	RestartFn func()
@@ -129,6 +134,9 @@ func New(cfg config.Config, version string, log *slog.Logger) (*App, error) {
 		st.Close()
 		return nil, err
 	}
+
+	a.Speed = xraystats.NewTracker(&xraystats.Source{Override: cfg.XrayAPI, Find: a.apiFinder})
+	a.SpeedBook = NewSpeedBook()
 
 	a.Bot = telegram.New(cfg.Proxy)
 	apply := func(s settings.Settings) {
@@ -225,6 +233,7 @@ func (a *App) Run(ctx context.Context) {
 	} else {
 		a.setPanelState(PanelState{Type: "none"})
 	}
+	run("speed", a.runSpeed)
 	run("maintenance", a.runMaintenance)
 	run("bot", func(ctx context.Context) { a.Bot.Poll(ctx, a.botHandler) })
 	wg.Wait()

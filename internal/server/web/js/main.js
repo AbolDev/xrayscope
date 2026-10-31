@@ -30,6 +30,7 @@ const ROUTES = [
 
 let timer = null;
 let renderToken = 0;
+const pollTimers = [];
 
 function parseHash() {
   const raw = location.hash.replace(/^#\/?/, '');
@@ -116,7 +117,14 @@ function start() {
     title.textContent = isUser ? t('user') : t('nav.' + route.path);
     buildRange(rangeBox, route, render);
 
-    const ctx = { parts: parts.slice(1), query, range: currentRange(), go, refresh: () => paint(true) };
+    for (const id of pollTimers.splice(0)) clearInterval(id);
+    // poll runs fn now and then every ms until the page is left (live figures such as speed)
+    const poll = (fn, ms) => {
+      const run = () => { if (!document.hidden && my === renderToken) Promise.resolve(fn()).catch(() => {}); };
+      run();
+      pollTimers.push(setInterval(run, ms));
+    };
+    const ctx = { parts: parts.slice(1), query, range: currentRange(), go, poll, refresh: () => paint(true) };
     const page = isUser ? userPage : route.page;
     const paint = async (soft) => {
       if (my !== renderToken) return;

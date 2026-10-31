@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"xrayscope/internal/model"
+	"xrayscope/internal/xraystats"
 
 	_ "modernc.org/sqlite"
 )
@@ -162,8 +163,7 @@ func (x *XUI) AccessLog(ctx context.Context) (LogInfo, error) {
 	return info, nil
 }
 
-// runtimeAccessLog reads log.access from the generated Xray config.
-func (x *XUI) runtimeAccessLog() (string, bool) {
+func (x *XUI) configPaths() []string {
 	paths := x.runtimeConfigs
 	if len(paths) == 0 {
 		paths = []string{"/usr/local/x-ui/bin/config.json"}
@@ -171,7 +171,16 @@ func (x *XUI) runtimeAccessLog() (string, bool) {
 			paths = append([]string{filepath.Join(dir, "config.json")}, paths...)
 		}
 	}
-	for _, p := range paths {
+	return paths
+}
+
+// XrayAPI returns the address of Xray's local API inbound, from the
+// configuration Xray runs with.
+func (x *XUI) XrayAPI() (string, bool) { return xraystats.FindAPI(x.configPaths()...) }
+
+// runtimeAccessLog reads log.access from the generated Xray config.
+func (x *XUI) runtimeAccessLog() (string, bool) {
+	for _, p := range x.configPaths() {
 		b, err := os.ReadFile(p)
 		if err != nil {
 			continue

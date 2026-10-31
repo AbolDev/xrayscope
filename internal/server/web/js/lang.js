@@ -10,6 +10,8 @@ const en = {
   max: 'max', conc: 'simultaneous', of: 'of', user: 'User', username: 'Username', password: 'Password', login: 'Sign in', 'login.sub': 'Traffic and behaviour analytics for your VPN panel',
   no_data: 'No data for this period', no_traffic: 'No traffic recorded in this period', no_events: 'No events yet', confidence: 'Confidence {p}%',
   foot: 'Built for 3x-ui, open source',
+  'kpi.speed': 'Speed now', 'speed.off': 'speed unavailable', 'speed.up': 'Up', 'speed.down': 'Down', 'speed.idle': 'idle',
+  'sys.speed': 'Live speed', 'sys.speed_err': 'Xray statistics API not reachable. Enable the stats API in the Xray config or set "xray_api" in the XrayScope configuration.',
   'vs_prev': '{p} vs previous period', 'vs_same': 'same as previous period', 'err.title': 'Something went wrong', 'err.retry': 'Try again', n_ips: '{n} IPs', limit_n: 'Limit {n}',
   'ov.empty': 'No data yet', 'ov.empty_hint': 'Turn on the Xray access log and sniffing, then come back once users have sent some traffic.',
   no_traffic_hint: 'Traffic volume comes from the panel counters. Check the panel connection under System.',
@@ -165,6 +167,8 @@ const fa = {
   max: 'حداکثر', conc: 'هم‌زمان', of: 'از', user: 'کاربر', username: 'نام کاربری', password: 'گذرواژه', login: 'ورود', 'login.sub': 'تحلیل ترافیک و رفتار کاربران پنل VPN شما',
   no_data: 'برای این بازه داده‌ای نیست', no_traffic: 'در این بازه ترافیکی ثبت نشده', no_events: 'هنوز رویدادی ثبت نشده', confidence: 'اطمینان {p}٪',
   foot: 'ساخته‌شده برای 3x-ui، متن‌باز',
+  'kpi.speed': 'سرعت اکنون', 'speed.off': 'سرعت در دسترس نیست', 'speed.up': 'آپلود', 'speed.down': 'دانلود', 'speed.idle': 'بی‌حرکت',
+  'sys.speed': 'سرعت زنده', 'sys.speed_err': 'API آمار Xray در دسترس نیست. آن را در پیکربندی Xray فعال کنید یا مقدار "xray_api" را در پیکربندی XrayScope بگذارید.',
   'vs_prev': '{p} نسبت به دوره‌ی قبل', 'vs_same': 'مثل دوره‌ی قبل', 'err.title': 'مشکلی پیش آمد', 'err.retry': 'تلاش دوباره', n_ips: '{n} آی‌پی', limit_n: 'سقف {n}',
   'ov.empty': 'هنوز داده‌ای نیست', 'ov.empty_hint': 'لاگ دسترسی Xray و Sniffing را روشن کنید و بعد از اینکه کاربران کمی ترافیک زدند برگردید.',
   no_traffic_hint: 'حجم ترافیک از شمارنده‌های پنل می‌آید. اتصال به پنل را در بخش سیستم بررسی کنید.',
@@ -302,8 +306,8 @@ const fa = {
 };
 
 const cats = {
-  en: { ai: 'AI', social: 'Social media', messaging: 'Messaging', video: 'Video', music: 'Music', gaming: 'Gaming', shopping: 'Shopping', news: 'News', dev: 'Development', search: 'Search', email: 'Email', work: 'Work tools', cloud: 'Cloud storage', finance: 'Finance & crypto', education: 'Education', tools: 'Utilities', vpn: 'VPN & proxy', other: 'Other sites', ip: 'Direct IP', ads: 'Ads', telemetry: 'Analytics', push: 'Push', connectivity: 'Connectivity', dns: 'DNS', update: 'Updates', system: 'System services', cdn: 'CDN & infra' },
-  fa: { ai: 'هوش مصنوعی', social: 'شبکه‌های اجتماعی', messaging: 'پیام‌رسان', video: 'ویدیو', music: 'موسیقی', gaming: 'بازی', shopping: 'خرید', news: 'اخبار', dev: 'برنامه‌نویسی', search: 'جستجو', email: 'ایمیل', work: 'ابزار کار', cloud: 'ذخیره‌سازی ابری', finance: 'مالی و ارز دیجیتال', education: 'آموزش', tools: 'ابزارها', vpn: 'VPN و پروکسی', other: 'سایر سایت‌ها', ip: 'آی‌پی مستقیم', ads: 'تبلیغات', telemetry: 'تحلیل و آمار', push: 'نوتیفیکیشن', connectivity: 'بررسی اتصال', dns: 'DNS', update: 'به‌روزرسانی', system: 'سرویس‌های سیستمی', cdn: 'CDN و زیرساخت' },
+  en: { ai: 'AI', social: 'Social media', messaging: 'Messaging', video: 'Video', music: 'Music', gaming: 'Gaming', shopping: 'Shopping', news: 'News', dev: 'Development', search: 'Search', email: 'Email', work: 'Work tools', cloud: 'Cloud storage', finance: 'Finance & crypto', education: 'Education', travel: 'Travel and rides', food: 'Food', sports: 'Sports', health: 'Health', books: 'Books and reading', jobs: 'Jobs and freelancing', tools: 'Utilities', vpn: 'VPN & proxy', other: 'Other sites', ip: 'Direct IP', ads: 'Ads', telemetry: 'Analytics', push: 'Push', connectivity: 'Connectivity', dns: 'DNS', update: 'Updates', system: 'System services', cdn: 'CDN & infra' },
+  fa: { ai: 'هوش مصنوعی', social: 'شبکه‌های اجتماعی', messaging: 'پیام‌رسان', video: 'ویدیو', music: 'موسیقی', gaming: 'بازی', shopping: 'خرید', news: 'اخبار', dev: 'برنامه‌نویسی', search: 'جستجو', email: 'ایمیل', work: 'ابزار کار', cloud: 'ذخیره‌سازی ابری', finance: 'مالی و ارز دیجیتال', education: 'آموزش', travel: 'سفر و تاکسی', food: 'غذا', sports: 'ورزش', health: 'سلامت', books: 'کتاب و مطالعه', jobs: 'کار و فریلنس', tools: 'ابزارها', vpn: 'VPN و پروکسی', other: 'سایر سایت‌ها', ip: 'آی‌پی مستقیم', ads: 'تبلیغات', telemetry: 'تحلیل و آمار', push: 'نوتیفیکیشن', connectivity: 'بررسی اتصال', dns: 'DNS', update: 'به‌روزرسانی', system: 'سرویس‌های سیستمی', cdn: 'CDN و زیرساخت' },
 };
 for (const k of Object.keys(cats.en)) { en['cat.' + k] = cats.en[k]; fa['cat.' + k] = cats.fa[k]; }
 

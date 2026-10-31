@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { h, t, num, bytes, dur, catName, flag, empty, isBgCat, panel, stats, ago } from '../util.js';
+import { h, t, num, bytes, dur, catName, flag, empty, isBgCat, panel, stats, ago, rate } from '../util.js';
 import { timeChart, rank, parts, heatmap } from '../charts.js';
 
 // change describes a figure against the period just before the range.
@@ -22,13 +22,23 @@ export async function overviewPage(ctx) {
     return page;
   }
 
-  // four numbers, each with what it compares to
+  // the numbers, each with what it compares to; speed updates every few seconds
+  const speedV = h('span', null, '-');
+  const speedS = h('span', null, '');
   page.append(stats([
+    { l: t('kpi.speed'), v: speedV, s: speedS },
     { l: t('kpi.online'), v: num(T.online_now), s: t('kpi.ips_now', { n: num(T.ips_now) }) },
     { l: t('kpi.active_users'), v: num(T.users_active), s: change(T.users_active, o.prev.users_active) || t('kpi.of_total', { n: num(T.users_total) }) },
     { l: t('kpi.download'), v: bytes(T.down), s: change(T.down, o.prev.down) },
     { l: t('kpi.upload'), v: bytes(T.up), s: change(T.up, o.prev.up) },
   ]));
+
+  ctx.poll(async () => {
+    const sp = await api.get('speed');
+    if (!sp.available) { speedV.textContent = '-'; speedS.textContent = t('speed.off'); return; }
+    speedV.textContent = rate(sp.total.down);
+    speedS.textContent = t('speed.up') + ' ' + rate(sp.total.up);
+  }, 3000);
 
   // The one rich chart: download in the accent, upload in a neutral step.
   const traffic = h('div');

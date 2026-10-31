@@ -102,6 +102,16 @@ export function bytes(n) {
   return ltr(num(n, n >= 100 ? 0 : n >= 10 ? 1 : 2) + ' ' + units[i]);
 }
 
+// rate formats bytes per second.
+export function rate(n) {
+  n = Number(n) || 0;
+  if (n < 1024) return ltr(num(n) + ' B/s');
+  const units = ['KB/s', 'MB/s', 'GB/s'];
+  let i = -1;
+  do { n /= 1024; i++; } while (n >= 1024 && i < units.length - 1);
+  return ltr(num(n, n >= 100 ? 0 : n >= 10 ? 1 : 2) + ' ' + units[i]);
+}
+
 // duration formats minutes as "2h 30m" / "۲ ساعت و ۳۰ دقیقه".
 export function dur(min) {
   min = Math.max(0, Math.round(Number(min) || 0));

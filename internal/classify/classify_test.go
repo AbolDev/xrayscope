@@ -22,6 +22,14 @@ func TestClassify(t *testing.T) {
 		{"93.184.216.34", "93.184.216.34", "ip", "", false},
 		{"blog.example.co.uk", "example.co.uk", "other", "", false},
 		{"localhost", "localhost", "other", "", false},
+		{"js.stripe.com", "js.stripe.com", "telemetry", "Embedded widgets", true},
+		{"connect.facebook.net", "connect.facebook.net", "telemetry", "Embedded widgets", true},
+		{"dashboard.stripe.com", "stripe.com", "finance", "Stripe", false},
+		{"www.facebook.com", "facebook.com", "social", "Facebook", false},
+		{"outlook.office365.com", "outlook.office365.com", "system", "Office background sync", true},
+		{"www.booking.com", "booking.com", "travel", "Booking", false},
+		{"snappfood.ir", "snappfood.ir", "food", "SnappFood", false},
+		{"www.varzesh3.com", "varzesh3.com", "sports", "Varzesh3", false},
 	}
 	for _, tc := range cases {
 		got := c.Classify(tc.host)

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"xrayscope/internal/analytics"
+	"xrayscope/internal/app"
 	"xrayscope/internal/auth"
 	"xrayscope/internal/backup"
 	"xrayscope/internal/classify"
@@ -22,6 +23,7 @@ import (
 	"xrayscope/internal/report"
 	"xrayscope/internal/settings"
 	"xrayscope/internal/store"
+	"xrayscope/internal/xraystats"
 )
 
 // ---------------------------------------------------------------- auth
@@ -158,6 +160,7 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		"dest_requests":    destTotal,
 		"nodes":            ns,
 		"backups":          map[string]any{"count": len(list), "last": last, "pending_restore": backup.HasPending(a.Cfg.DataDir)},
+		"speed":            speedState(a),
 		"telegram":         a.Bot.Enabled(),
 		"geo":              a.Geo != nil,
 	})
@@ -474,6 +477,67 @@ func (s *Server) handleOnline(w http.ResponseWriter, r *http.Request) {
 		out = append(out, x)
 	}
 	writeJSON(w, http.StatusOK, out)
+}
+
+func speedState(a *app.App) map[string]any {
+	updated, err := a.Speed.Status()
+	m := map[string]any{"ok": !updated.IsZero() && err == nil}
+	if err != nil {
+		m["error"] = err.Error()
+	}
+	return m
+}
+
+// handleSpeed returns the live transfer speed of every user.
+func (s *Server) handleSpeed(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, s.app.Speeds(r.Context(), 200))
+}
+
+// handleUserSpeed returns one user's current speed and the last few minutes.
+func (s *Server) handleUserSpeed(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(r)
+	if !ok {
+		fail(w, http.StatusBadRequest, "invalid user id")
+		return
+	}
+	u, err := s.app.Store.UserByID(r.Context(), id)
+	if errors.Is(err, sql.ErrNoRows) {
+		fail(w, http.StatusNotFound, "user not found")
+		return
+	} else if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	all := s.app.SpeedBook.Merge(s.app.Speed.Rates())
+	cur := all[u.Email]
+	hist := s.app.Speed.History(u.Email)
+	if hist == nil {
+		hist = []xraystats.Point{}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"up": cur.Up, "down": cur.Down, "history": hist})
+}
+
+// handleIngestSpeed accepts the live speeds of a node (Bearer token).
+func (s *Server) handleIngestSpeed(w http.ResponseWriter, r *http.Request) {
+	tok := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+	node, err := s.app.Store.NodeByToken(r.Context(), tok)
+	if tok == "" || err != nil {
+		fail(w, http.StatusUnauthorized, "invalid token")
+		return
+	}
+	var body struct {
+		Speeds map[string][2]int64 `json:"speeds"`
+	}
+	if err := jsonDecode(http.MaxBytesReader(w, r.Body, 4<<20), &body); err != nil {
+		fail(w, http.StatusBadRequest, "invalid JSON body")
+		return
+	}
+	rates := make(map[string]xraystats.Rate, len(body.Speeds))
+	for email, v := range body.Speeds {
+		rates[email] = xraystats.Rate{Up: v[0], Down: v[1]}
+	}
+	s.app.SpeedBook.Set(fmt.Sprintf("node:%d", node.ID), rates)
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
 func (s *Server) handleIP(w http.ResponseWriter, r *http.Request) {

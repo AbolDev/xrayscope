@@ -19,6 +19,12 @@ type Panel interface {
 	AccessLog(ctx context.Context) (LogInfo, error)
 }
 
+// APIProvider is implemented by panels that can say where the proxy core's
+// local statistics API listens.
+type APIProvider interface {
+	XrayAPI() (addr string, ok bool)
+}
+
 // LogInfo describes the access-log configuration found in the panel.
 type LogInfo struct {
 	Path     string   `json:"path"`     // resolved existing path, "" if not found

@@ -1,9 +1,9 @@
 import { api, guard } from '../api.js';
 import {
   h, t, num, bytes, dur, ago, flag, icon, empty, catName, fmtDate, fmtDateTime, fmtTime, fmtDateStr,
-  dateStrToSec, ymd, state, modal, confirmBox, debounce, isFa, isBgCat, digits, ltr, tag, stats, panel, ramp, queryGet, queryPut,
+  dateStrToSec, ymd, state, modal, confirmBox, debounce, isFa, isBgCat, digits, ltr, tag, stats, panel, ramp, queryGet, queryPut, rate,
 } from '../util.js';
-import { timeChart, rank, parts, heatmap, strip, gantt } from '../charts.js';
+import { timeChart, rank, parts, heatmap, strip, gantt, sparkline } from '../charts.js';
 
 const TABS = ['summary', 'timeline', 'sites', 'network', 'sleep'];
 
@@ -41,6 +41,7 @@ function header(u, online, id, rg, ctx) {
         h('div', { class: 'row', style: { gap: '8px', fontSize: 'var(--t-xl)', fontWeight: 500 } }, h('span', { class: 'dot' + (online ? ' live' : ''), role: 'img', 'aria-label': online ? t('online') : t('offline') }), u.email,
           online ? tag(t('online_n', { n: num(online.conns.length) }), 'ok') : tag(t('offline')), !u.enabled ? tag(t('disabled'), 'bad') : null),
         h('div', { class: 'muted small' }, t('last_seen_at', { t: u.last_seen ? ago(u.last_seen) : '-' })),
+        online ? speedLine(id, ctx) : null,
         u.first_seen ? h('div', { class: 'muted small' }, t('first_seen_at', { d: fmtDate(u.first_seen) })) : null),
       u.quota > 0 ? h('div', { style: { minWidth: '180px' } },
         h('div', { class: 'meter' + (pct > 95 ? ' bad' : pct > 80 ? ' warn' : '') }, h('i', { style: { width: pct + '%' } })),
@@ -57,6 +58,21 @@ function header(u, online, id, rg, ctx) {
           }
         } }, icon('trash')))),
     u.note ? h('div', { class: 'alert', style: { marginTop: '12px' } }, u.note) : null));
+}
+
+// speedLine shows the user's live speed with the last minutes as a strip.
+function speedLine(id, ctx) {
+  const text = h('span', { class: 'mono' });
+  const box = h('div', { class: 'row', style: { gap: '12px', marginTop: '4px' } }, text);
+  const strip = h('span');
+  box.append(strip);
+  ctx.poll(async () => {
+    const s = await api.get(`users/${id}/speed`);
+    text.textContent = t('speed.down') + ' ' + rate(s.down) + '   ' + t('speed.up') + ' ' + rate(s.up);
+    const pts = s.history.slice(-60).map((p) => p.down);
+    strip.replaceChildren(pts.length > 3 ? sparkline(pts, { width: 120, height: 18, live: true }) : '');
+  }, 3000);
+  return box;
 }
 
 function noteDialog(u, ctx) {
@@ -135,7 +151,7 @@ function summary(r) {
 
   page.append(panel(t('chart.heat'), heatmap(a.heatmap), t('us.heat_hint')));
 
-  const top = r.top_sites.filter((s) => s.category !== 'cdn' && s.category !== 'system').slice(0, 12);
+  const top = r.top_sites.filter((s) => !isBgCat(s.category)).slice(0, 12);
   const ts = panel(t('us.top_sites'), top.length ? siteTable(top) : empty(t('no_data')), h('a', { href: `#/users/${r.user.id}?tab=sites` }, t('see_all')), true);
   page.append(ts);
   return page;

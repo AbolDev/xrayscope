@@ -36,7 +36,9 @@ export async function systemPage(ctx) {
     p.error ? h('div', { class: 'alert bad', style: { marginTop: '10px' } }, p.error, h('div', { class: 'small', style: { marginTop: '4px' } }, t('sys.panel_fix'))) : null,
     p.last_ok ? h('div', { class: 'muted', style: { marginTop: '8px' } }, t('sys.panel_last', { t: ago(p.last_ok) })) : null,
     h('div', { class: 'row', style: { marginTop: '10px' } },
-      tag('Telegram: ' + (st.telegram ? t('on') : t('off')), st.telegram ? 'ok' : ''), tag('GeoIP: ' + (st.geo ? t('on') : t('off')), st.geo ? 'ok' : '')));
+      tag('Telegram: ' + (st.telegram ? t('on') : t('off')), st.telegram ? 'ok' : ''), tag('GeoIP: ' + (st.geo ? t('on') : t('off')), st.geo ? 'ok' : ''),
+      tag(t('sys.speed') + ': ' + (st.speed.ok ? t('on') : t('off')), st.speed.ok ? 'ok' : '')),
+    !st.speed.ok && p.type !== 'none' ? h('div', { class: 'alert', style: { marginTop: '10px' } }, t('sys.speed_err')) : null);
   page.append(h('div', { class: 'cols c2' }, panel(t('sys.collection'), logBody), panel(t('sys.panel'), panelBody)));
 
   if (st.db.first_hour) {

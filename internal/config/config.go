@@ -38,6 +38,10 @@ type Config struct {
 	// Proxy is the default outbound proxy (http://, https://, socks5://).
 	Proxy string `json:"proxy"`
 
+	// XrayAPI is the address of Xray's local statistics API (host:port). Leave
+	// it empty to let the panel adapter find it.
+	XrayAPI string `json:"xray_api"`
+
 	GeoDB    string `json:"geo_db"` // optional MaxMind/DB-IP country mmdb
 	GeoASNDB string `json:"asn_db"` // optional ASN mmdb
 

@@ -102,6 +102,47 @@ func TestApplyBatchAndQuery(t *testing.T) {
 	}
 }
 
+// A lone request to a site in a minute (a widget, a tracker) must not count
+// as the user using it, but two in the same minute do, even when they arrive
+// in separate batches.
+func TestStrayRequestsDoNotCountAsUse(t *testing.T) {
+	s := openTest(t)
+	ctx := context.Background()
+	base := time.Now().Add(-time.Hour).Unix() / 60
+
+	stray := []model.Rec{{M: base, U: "dana", IP: "1.1.1.1", D: "www.instagram.com", N: 1}}
+	if _, err := s.ApplyBatch(0, stray, nil, 1); err != nil {
+		t.Fatal(err)
+	}
+	u, _ := s.UserByEmail(ctx, "dana")
+	rows, _ := s.Act(ctx, u.ID, base/60-1, base/60+2)
+	var inter int64
+	for _, r := range rows {
+		inter |= r.IMask
+	}
+	svc, _ := s.Svc(ctx, u.ID, base/60-1, base/60+2)
+	if inter != 0 || len(svc) != 0 {
+		t.Fatalf("one stray request counted as use: imask=%b svc=%d", inter, len(svc))
+	}
+	if len(rows) == 0 || rows[0].Mask == 0 {
+		t.Fatal("the connection itself must still be recorded as presence")
+	}
+
+	// the second request in the same minute arrives in a later batch
+	if _, err := s.ApplyBatch(0, stray, nil, 1); err != nil {
+		t.Fatal(err)
+	}
+	rows, _ = s.Act(ctx, u.ID, base/60-1, base/60+2)
+	inter = 0
+	for _, r := range rows {
+		inter |= r.IMask
+	}
+	svc, _ = s.Svc(ctx, u.ID, base/60-1, base/60+2)
+	if inter == 0 || len(svc) != 1 {
+		t.Fatalf("two requests in a minute must count: imask=%b svc=%d", inter, len(svc))
+	}
+}
+
 func TestTrafficDeltas(t *testing.T) {
 	s := openTest(t)
 	ctx := context.Background()

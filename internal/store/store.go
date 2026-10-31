@@ -41,6 +41,8 @@ type Store struct {
 	hosts map[string]hostInfo
 	sites map[string]int64
 	svcs  map[svcKey]int64
+
+	recent map[recentKey]int // requests per (minute, user, site) seen so far
 }
 
 type svcKey struct{ category, name string }
@@ -72,7 +74,7 @@ func Open(path string, cls *classify.Classifier) (*Store, error) {
 	s := &Store{
 		path: path, w: w, r: r,
 		users: map[string]int64{}, ips: map[string]int64{}, hosts: map[string]hostInfo{},
-		sites: map[string]int64{}, svcs: map[svcKey]int64{},
+		sites: map[string]int64{}, svcs: map[svcKey]int64{}, recent: map[recentKey]int{},
 	}
 	if cls == nil {
 		cls = classify.New(nil)

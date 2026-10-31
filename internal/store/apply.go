@@ -34,6 +34,25 @@ type span struct{ first, last int64 }
 
 const maxHostCache = 200000
 
+// MinInteractiveReqs is how many requests to one site within a minute make
+// that minute count as use of the site.
+const MinInteractiveReqs = 2
+
+type recentKey struct{ minute, user, dom int64 }
+
+// pruneRecent forgets request counts of minutes that can no longer receive
+// data.
+func (s *Store) pruneRecent(now int64) {
+	if len(s.recent) < 100000 {
+		return
+	}
+	for k := range s.recent {
+		if k.minute < now-10 {
+			delete(s.recent, k)
+		}
+	}
+}
+
 // ApplyBatch folds aggregated access-log records into the database in a
 // single transaction. kv entries (such as the log read offset) are written in
 // the same transaction so a crash never loses or double-counts data.
@@ -63,6 +82,7 @@ func (s *Store) ApplyBatch(nodeID int64, recs []model.Rec, kv map[string]string,
 	emails := map[int64]string{}
 
 	now := time.Now().Unix() / 60
+	s.pruneRecent(now)
 	for i := range recs {
 		r := &recs[i]
 		if r.M <= 0 || r.M > now+1440 || r.U == "" || r.N <= 0 {
@@ -84,24 +104,35 @@ func (s *Store) ApplyBatch(nodeID int64, recs []model.Rec, kv map[string]string,
 		hour, bit := r.M/60, int64(1)<<uint(r.M%60)
 		n := int64(r.N)
 
+		// A single stray request to a site in a minute is usually a widget,
+		// a tracker or an app syncing in the background, not the person
+		// using that site. Counting across batches, the minute only counts as
+		// use of the site once it saw at least MinInteractiveReqs requests.
+		rk := recentKey{r.M, uid, hi.domID}
+		cum := s.recent[rk] + r.N
+		s.recent[rk] = cum
+		engaged := hi.bg || cum >= MinInteractiveReqs
+
 		a := act[actKey{hour, uid, ipid}]
 		if a == nil {
 			a = &actVal{}
 			act[actKey{hour, uid, ipid}] = a
 		}
 		a.mask |= bit
-		if !hi.bg {
+		if !hi.bg && engaged {
 			a.imask |= bit
 		}
 		a.reqs += n
 
-		sv := svc[svcRowKey{hour, uid, hi.svcID}]
-		if sv == nil {
-			sv = &maskVal{}
-			svc[svcRowKey{hour, uid, hi.svcID}] = sv
+		if engaged {
+			sv := svc[svcRowKey{hour, uid, hi.svcID}]
+			if sv == nil {
+				sv = &maskVal{}
+				svc[svcRowKey{hour, uid, hi.svcID}] = sv
+			}
+			sv.mask |= bit
+			sv.reqs += n
 		}
-		sv.mask |= bit
-		sv.reqs += n
 
 		v := vis[visitKey{hour, uid, hi.domID}]
 		if v == nil {
@@ -383,6 +414,7 @@ func (s *Store) resetCaches() {
 	s.hosts = map[string]hostInfo{}
 	s.sites = map[string]int64{}
 	s.svcs = map[svcKey]int64{}
+	s.recent = map[recentKey]int{}
 }
 
 // TrafficLast returns the remembered cumulative counters per email.

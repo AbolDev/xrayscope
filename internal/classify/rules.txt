@@ -142,8 +142,6 @@ shopping|Etsy|etsy.com,etsystatic.com
 shopping|Walmart|walmart.com,walmartimages.com
 shopping|Digikala|digikala.com
 shopping|Divar|divar.ir
-shopping|Booking|booking.com,bstatic.com
-shopping|Airbnb|airbnb.com,muscache.com
 shopping|Shopify|shopify.com,myshopify.com
 
 # ---------------------------------------------------------------- News and reading
@@ -290,12 +288,126 @@ vpn|NordVPN|nordvpn.com,nordcdn.com
 vpn|ExpressVPN|expressvpn.com
 vpn|Proton VPN|protonvpn.com
 
+# ---------------------------------------------------------------- Travel and rides
+travel|Booking|booking.com,bstatic.com
+travel|Airbnb|airbnb.com,muscache.com
+travel|Expedia|expedia.com,expediagroup.com
+travel|Skyscanner|skyscanner.net,skyscanner.com
+travel|Tripadvisor|tripadvisor.com,tacdn.com
+travel|Agoda|agoda.com,agoda.net
+travel|Trivago|trivago.com
+travel|Kayak|kayak.com
+travel|Flightradar24|flightradar24.com
+travel|Alibaba Travel|alibaba.ir
+travel|SnappTrip|snapptrip.com
+travel|Flytoday|flytoday.ir
+travel|Snapp|snapp.ir
+travel|Tapsi|tapsi.ir
+travel|Uber|uber.com,ubercdn.com
+travel|Lyft|lyft.com
+travel|Waze|waze.com
+
+# ---------------------------------------------------------------- Food
+food|Uber Eats|ubereats.com
+food|DoorDash|doordash.com
+food|Deliveroo|deliveroo.com,deliveroo.co.uk
+food|SnappFood|snappfood.ir
+food|Reyhoon|reyhoon.com
+food|Tasty|tasty.co
+food|Allrecipes|allrecipes.com
+food|Cookpad|cookpad.com
+food|Yelp|yelp.com
+
+# ---------------------------------------------------------------- Sports
+sports|ESPN|espn.com,espncdn.com
+sports|Varzesh3|varzesh3.com
+sports|Sofascore|sofascore.com
+sports|Flashscore|flashscore.com
+sports|FIFA|fifa.com
+sports|UEFA|uefa.com
+sports|NBA|nba.com
+sports|Bleacher Report|bleacherreport.com
+sports|Strava|strava.com
+sports|90tv|90tv.ir
+
+# ---------------------------------------------------------------- Health
+health|WebMD|webmd.com
+health|Mayo Clinic|mayoclinic.org
+health|Healthline|healthline.com
+health|NIH|nih.gov
+health|Paziresh24|paziresh24.com
+health|DrDr|drdr.ir
+health|MyFitnessPal|myfitnesspal.com
+health|Fitbit|fitbit.com
+
+# ---------------------------------------------------------------- Books and reading
+books|Goodreads|goodreads.com
+books|Audible|audible.com
+books|Kindle|read.amazon.com,kindle.com
+books|Wattpad|wattpad.com
+books|Fidibo|fidibo.com
+books|Taaghche|taaghche.com
+books|Ketabrah|ketabrah.ir
+books|Internet Archive|archive.org
+
+# ---------------------------------------------------------------- Jobs and freelancing
+jobs|Indeed|indeed.com
+jobs|Glassdoor|glassdoor.com
+jobs|Jobinja|jobinja.ir
+jobs|JobVision|jobvision.ir
+jobs|Upwork|upwork.com
+jobs|Fiverr|fiverr.com
+jobs|Freelancer|freelancer.com
+jobs|Toptal|toptal.com
+
+# ---------------------------------------------------------------- More reading, learning and entertainment
+news|Isna|isna.ir
+news|Irna|irna.ir
+news|Tasnim|tasnimnews.com
+news|Fars|farsnews.ir
+news|Khabaronline|khabaronline.ir
+news|Hamshahri|hamshahrionline.ir
+news|Euronews|euronews.com
+news|Washington Post|washingtonpost.com
+news|Wall Street Journal|wsj.com
+news|Financial Times|ft.com
+news|Radio Free Europe|rferl.org
+news|The Independent|independent.co.uk
+video|IMDb|imdb.com,media-imdb.com
+video|Tamasha|tamasha.com
+music|Bandcamp|bandcamp.com
+music|Last.fm|last.fm
+gaming|Chess.com|chess.com
+gaming|Lichess|lichess.org
+gaming|itch.io|itch.io
+gaming|GOG|gog.com
+gaming|IGN|ign.com
+education|Quera|quera.org
+education|Maktabkhooneh|maktabkhooneh.org
+education|Faradars|faradars.org
+education|Skillshare|skillshare.com
+education|MasterClass|masterclass.com
+dev|LeetCode|leetcode.com
+dev|Codeforces|codeforces.com
+dev|Bitbucket|bitbucket.org
+dev|DigitalOcean|digitalocean.com
+dev|Hetzner|hetzner.com
+dev|Read the Docs|readthedocs.io
+shopping|Torob|torob.com
+shopping|Basalam|basalam.com
+shopping|Zara|zara.com
+shopping|IKEA|ikea.com
+
 # ---------------------------------------------------------------- Ads and trackers
 ads|Google Ads|doubleclick.net,googlesyndication.com,googleadservices.com,adservice.google.com,googleads.g.doubleclick.net,admob.com
 ads|Ad networks|adnxs.com,taboola.com,outbrain.com,criteo.com,criteo.net,amazon-adsystem.com,adsrvr.org,rubiconproject.com,pubmatic.com,openx.net,moatads.com,scorecardresearch.com,applovin.com,ironsrc.com,supersonicads.com,vungle.com,chartboost.com,adcolony.com,mopub.com,inmobi.com,startapp.com,unityads.unity3d.com,mgid.com,popads.net,propellerads.com,tapsell.ir,yektanet.com,smaato.net,bidswitch.net,casalemedia.com,adform.net
 
 # ---------------------------------------------------------------- Telemetry and analytics
 telemetry|Analytics|google-analytics.com,googletagmanager.com,analytics.google.com,app-measurement.com,crashlytics.com,sentry.io,bugsnag.com,mixpanel.com,mxpnl.com,amplitude.com,segment.io,segment.com,appsflyer.com,adjust.com,adjust.io,branch.io,app.link,onesignal.com,newrelic.com,nr-data.net,datadoghq.com,hotjar.com,clarity.ms,singular.net,kochava.com,flurry.com,mc.yandex.ru,firebaselogging-pa.googleapis.com,firebaseinstallations.googleapis.com,firebaseremoteconfig.googleapis.com
+
+# Widgets and SDKs that other sites and apps load in the background. Seeing
+# them says nothing about the user visiting the service itself.
+telemetry|Embedded widgets|js.stripe.com,m.stripe.com,m.stripe.network,r.stripe.com,q.stripe.com,merchant-ui-api.stripe.com,connect.facebook.net,graph.facebook.com,pixel.facebook.com,an.facebook.com,graph.instagram.com,platform.twitter.com,syndication.twitter.com,platform.linkedin.com,snap.licdn.com,widgets.pinterest.com,assets.pinterest.com,api.pinterest.com,analytics.tiktok.com,business-api.tiktok.com,connect.facebook.com
 
 # ---------------------------------------------------------------- Push notifications
 push|Push|mtalk.google.com,fcm.googleapis.com,push.apple.com,push.services.mozilla.com,notify.windows.com,wns.windows.com,push.api.xiaomi.com
@@ -316,6 +428,7 @@ update|Linux repositories|archive.ubuntu.com,security.ubuntu.com,deb.debian.org,
 update|Mozilla updates|aus5.mozilla.org,download.mozilla.org,content-signature-2.cdn.mozilla.net
 
 # ---------------------------------------------------------------- Operating system services
+system|Office background sync|config.office.com,officeclient.microsoft.com,nexusrules.officeapps.live.com,ecs.office.com,substrate.office.com,outlook.office365.com,outlook.office.com.edgekey.net,odc.officeapps.live.com,omex.cdn.office.net,mrodevicemgr.officeapps.live.com,client-office365-tas.msedge.net,c.office.net,pipe.aria.microsoft.com,browser.pipe.aria.microsoft.com,self.events.data.microsoft.com
 system|Apple services|apple.com,icloud.com.cn,cdn-apple.com,apple-dns.net
 system|Microsoft services|microsoft.com,live.com,microsoftonline.com,msauth.net,msftauth.net,windows.com,windows.net,bing.net,msedge.net,microsoft.com.akadns.net,skype.net,data.microsoft.com
 system|Google services|accounts.google.com,clients1.google.com,clients2.google.com,clients4.google.com,clients6.google.com,gstatic.com,ggpht.com,googleusercontent.com,apis.google.com

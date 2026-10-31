@@ -129,6 +129,7 @@ func (s *Server) routes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/health", s.handleHealth)
 	mux.HandleFunc("POST /api/login", s.handleLogin)
 	mux.HandleFunc("POST /api/ingest", s.handleIngest)
+	mux.HandleFunc("POST /api/ingest/speed", s.handleIngestSpeed)
 
 	// authenticated
 	authed := func(pattern string, h http.HandlerFunc) {
@@ -149,6 +150,8 @@ func (s *Server) routes(mux *http.ServeMux) {
 	authed("POST /api/users/{id}/note", s.handleNote)
 	authed("DELETE /api/users/{id}", s.handleDeleteUser)
 	authed("GET /api/online", s.handleOnline)
+	authed("GET /api/speed", s.handleSpeed)
+	authed("GET /api/users/{id}/speed", s.handleUserSpeed)
 	authed("GET /api/ips/{ip}", s.handleIP)
 	authed("GET /api/events", s.handleEvents)
 	authed("GET /api/nodes", s.handleNodes)
