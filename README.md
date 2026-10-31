@@ -77,6 +77,10 @@ xrayscope passwd -c /etc/xrayscope/config.json
 
 ## Multiple nodes
 
+**Option A – the main server connects to the node (no commands on the node).** Install XrayScope normally on the node (it runs as a standalone panel), then on the main server open **Nodes → Add node**, keep *This server connects to the node*, and enter the node's address (e.g. `http://203.0.113.5:8686`), its XrayScope username and password, and an optional proxy. The main server signs in, collects logs, traffic and live speeds every few seconds, and shows any connection error in the node list. The node keeps a small queue until it is collected, so a link drop loses nothing. The node's password is stored in the main server's database.
+
+**Option B – the node connects to the main server (agent).**
+
 1. On the main server open **Nodes → Add node**, give it a name and copy the command it shows.
 2. Run it on the node:
 

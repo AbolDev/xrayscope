@@ -18,7 +18,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-const schemaVersion = 1
+const schemaVersion = 2
 
 // SchemaVersion is the database schema this build reads and writes.
 const SchemaVersion = schemaVersion
@@ -43,6 +43,9 @@ type Store struct {
 	svcs  map[svcKey]int64
 
 	recent map[recentKey]int // requests per (minute, user, site) seen so far
+
+	outboxOn     atomic.Bool
+	outboxPushes atomic.Int64
 }
 
 type svcKey struct{ category, name string }
@@ -130,6 +133,21 @@ func (s *Store) migrate() error {
 	}
 	if cur < 1 {
 		if _, err := s.w.Exec(schemaV1); err != nil {
+			return err
+		}
+	}
+	if cur < 2 {
+		tx, err := s.w.Begin()
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback()
+		for _, q := range schemaV2 {
+			if _, err := tx.Exec(q); err != nil {
+				return fmt.Errorf("%s: %w", q, err)
+			}
+		}
+		if err := tx.Commit(); err != nil {
 			return err
 		}
 	}

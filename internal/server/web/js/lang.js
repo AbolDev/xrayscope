@@ -93,7 +93,12 @@ const en = {
   'ev.expiry': 'Expiry', 'ev.node_offline': 'Node offline', 'ev.node_online': 'Node online', 'ev.log_stale': 'Log stalled', 'ev.backup': 'Backup',
 
   // nodes
-  'node.add': 'Add node', 'node.hint': 'Nodes ship their access log and traffic to this server.', 'node.none': 'No nodes connected yet.', 'node.name': 'Name',
+  'node.mode': 'Connection', 'node.mode_pull': 'This server connects to the node (recommended)', 'node.mode_push': 'The node connects to this server (install an agent)',
+  'node.mode_help': 'Pull needs only the node\'s panel address and login; nothing is run on the node.', 'node.mode_pull_short': 'pulled', 'node.mode_push_short': 'agent',
+  'node.url': 'Node address', 'node.url_help': 'The address of XrayScope on the node, e.g. http://203.0.113.5:8686.', 'node.user': 'Username', 'node.pass': 'Password',
+  'node.pass_help': 'The XrayScope login of the node. It is stored on this server so it can sign in.', 'node.proxy': 'Proxy (optional)', 'node.proxy_opt': 'http://, https:// or socks5:// URL used to reach the node.',
+  'node.insecure': 'Skip TLS certificate verification', 'node.connected': 'Node connected', 'node.error': 'error',
+  'node.add': 'Add node', 'node.hint': 'Add a node here and this server collects its logs and traffic.', 'node.none': 'No nodes connected yet.', 'node.name': 'Name',
   'node.name_help': 'A short label such as de-1 or fr-2.', 'node.never': 'never connected', 'node.ip': 'Address', 'node.version': 'Version', 'node.panel': 'Panel', 'node.lines': 'Lines',
   'node.delete': 'Remove node', 'node.delete_text': 'Remove {name}? Its collected data is kept.', 'node.created': 'Node created',
   'node.token_once': 'Copy the token now. It is shown only once.', 'node.token': 'Token', 'node.install': 'Install on the node', 'node.manual': 'Or configure an installed binary',
@@ -241,7 +246,12 @@ const fa = {
   'ev.max_ips': 'آی‌پی هم‌زمان زیاد', 'ev.new_ip': 'آی‌پی جدید', 'ev.new_country': 'کشور جدید', 'ev.traffic_spike': 'جهش ترافیک', 'ev.quota': 'حجم',
   'ev.expiry': 'انقضا', 'ev.node_offline': 'نود آفلاین', 'ev.node_online': 'نود آنلاین', 'ev.log_stale': 'توقف لاگ', 'ev.backup': 'پشتیبان',
 
-  'node.add': 'افزودن نود', 'node.hint': 'نودها لاگ دسترسی و ترافیک خود را به این سرور می‌فرستند.', 'node.none': 'هنوز نودی متصل نشده است.', 'node.name': 'نام',
+  'node.mode': 'نوع اتصال', 'node.mode_pull': 'این سرور به نود وصل می‌شود (پیشنهادی)', 'node.mode_push': 'نود به این سرور وصل می‌شود (نصب Agent)',
+  'node.mode_help': 'در حالت اول فقط آدرس و ورود پنل نود لازم است و روی نود چیزی اجرا نمی‌شود.', 'node.mode_pull_short': 'دریافتی', 'node.mode_push_short': 'ایجنت',
+  'node.url': 'آدرس نود', 'node.url_help': 'آدرس XrayScope روی نود، مثل http://203.0.113.5:8686.', 'node.user': 'نام کاربری', 'node.pass': 'رمز عبور',
+  'node.pass_help': 'اطلاعات ورود XrayScope نود. برای ورود خودکار روی این سرور ذخیره می‌شود.', 'node.proxy': 'پروکسی (اختیاری)', 'node.proxy_opt': 'آدرس http://‎، https://‎ یا socks5://‎ برای رسیدن به نود.',
+  'node.insecure': 'نادیده گرفتن اعتبار گواهی TLS', 'node.connected': 'نود متصل شد', 'node.error': 'خطا',
+  'node.add': 'افزودن نود', 'node.hint': 'نود را اینجا اضافه کنید تا این سرور لاگ و ترافیک آن را جمع کند.', 'node.none': 'هنوز نودی متصل نشده است.', 'node.name': 'نام',
   'node.name_help': 'یک برچسب کوتاه مثل de-1 یا fr-2.', 'node.never': 'هرگز متصل نشده', 'node.ip': 'آدرس', 'node.version': 'نسخه', 'node.panel': 'پنل', 'node.lines': 'خط‌ها',
   'node.delete': 'حذف نود', 'node.delete_text': '{name} حذف شود؟ داده‌های جمع‌آوری‌شده‌ی آن می‌ماند.', 'node.created': 'نود ساخته شد',
   'node.token_once': 'توکن را همین حالا کپی کنید؛ فقط یک بار نمایش داده می‌شود.', 'node.token': 'توکن', 'node.install': 'نصب روی نود', 'node.manual': 'یا پیکربندی برنامه‌ی نصب‌شده',

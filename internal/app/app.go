@@ -77,6 +77,9 @@ type App struct {
 	Speed     *xraystats.Tracker
 	SpeedBook *SpeedBook
 
+	// PullInterval overrides how often pull nodes are collected (tests).
+	PullInterval time.Duration
+
 	// RestartFn is called to restart the process (set by main).
 	RestartFn func()
 }
@@ -234,6 +237,7 @@ func (a *App) Run(ctx context.Context) {
 		a.setPanelState(PanelState{Type: "none"})
 	}
 	run("speed", a.runSpeed)
+	run("pull", a.runPull)
 	run("maintenance", a.runMaintenance)
 	run("bot", func(ctx context.Context) { a.Bot.Poll(ctx, a.botHandler) })
 	wg.Wait()
@@ -376,6 +380,7 @@ func (s localSink) Flush(recs []model.Rec, pos collect.Position, lines int64) er
 		return err
 	}
 	a.Live.Observe(obs)
+	a.RecordOutbox(model.Batch{ID: fmt.Sprintf("%d", time.Now().UnixNano()), Recs: recs, Lines: lines})
 	if lines > 0 {
 		a.lastLineAt.Store(time.Now().Unix())
 		a.linesTotal.Add(lines)
@@ -407,6 +412,7 @@ func (a *App) runPanel(ctx context.Context) {
 			if err := a.Store.ApplyTraffic(0, deltas, totals); err != nil {
 				return err
 			}
+			a.RecordOutbox(model.Batch{Traffic: deltas, Users: users})
 			a.setPanelState(PanelState{Type: a.Panel.Name(), OK: true, LastOK: time.Now().Unix(), Users: len(users)})
 			return nil
 		},

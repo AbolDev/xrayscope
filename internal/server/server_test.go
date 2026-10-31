@@ -32,7 +32,7 @@ func logLine(ts time.Time, ip, host, user string) string {
 	return fmt.Sprintf("%s from %s:4000 accepted tcp:%s:443 [in >> direct] email: %s\n", ts.Format("2006/01/02 15:04:05.000000"), ip, host, user)
 }
 
-func newEnv(t *testing.T) *env {
+func newEnv(t *testing.T, opts ...func(*app.App)) *env {
 	t.Helper()
 	dir := t.TempDir()
 	logPath := filepath.Join(dir, "access.log")
@@ -49,6 +49,9 @@ func newEnv(t *testing.T) *env {
 		t.Fatal(err)
 	}
 	t.Cleanup(a.Close)
+	for _, o := range opts {
+		o(a)
+	}
 	s, err := server.New(a)
 	if err != nil {
 		t.Fatal(err)
@@ -107,6 +110,60 @@ func waitUntil(t *testing.T, what string, cond func() bool) {
 		time.Sleep(50 * time.Millisecond)
 	}
 	t.Fatalf("timeout waiting for %s", what)
+}
+
+func TestPullNode(t *testing.T) {
+	node := newEnv(t)
+	node.login(t)
+	main := newEnv(t, func(a *app.App) { a.PullInterval = 100 * time.Millisecond })
+	main.login(t)
+
+	// wrong credentials are refused up front
+	code, _ := main.do(t, "POST", "/api/nodes", map[string]any{
+		"name": "bad", "mode": "pull", "url": node.srv.URL, "username": "admin", "password": "nope",
+	})
+	if code == 200 {
+		t.Fatal("a wrong password must not create a node")
+	}
+
+	code, b := main.do(t, "POST", "/api/nodes", map[string]any{
+		"name": "edge", "mode": "pull", "url": node.srv.URL, "username": "admin", "password": node.app.InitialPassword,
+	})
+	if code != 200 {
+		t.Fatalf("create pull node: %d %s", code, b)
+	}
+
+	// the first pull switches the node's outbox on; new log lines then flow
+	waitUntil(t, "outbox enabled", func() bool { return node.app.Store.OutboxOn() })
+	f, err := os.OpenFile(node.log, os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.WriteString(logLine(time.Now().UTC(), "203.0.113.9", "example.com", "alice@x")); err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+
+	waitUntil(t, "data pulled into the main server", func() bool {
+		users, err := main.app.Store.Users(context.Background())
+		if err != nil {
+			return false
+		}
+		for _, u := range users {
+			if u.Email == "alice@x" {
+				return true
+			}
+		}
+		return false
+	})
+
+	_, b = main.do(t, "GET", "/api/nodes", nil)
+	if !strings.Contains(string(b), `"mode":"pull"`) {
+		t.Fatalf("node list lacks the pull node: %s", b)
+	}
+	if strings.Contains(string(b), node.app.InitialPassword) {
+		t.Fatal("the node password must never be returned")
+	}
 }
 
 func TestAuthRequired(t *testing.T) {

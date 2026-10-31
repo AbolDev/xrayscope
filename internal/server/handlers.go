@@ -2,12 +2,14 @@ package server
 
 import (
 	"compress/gzip"
+	"context"
 	"database/sql"
 	"encoding/csv"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"sort"
 	"strconv"
@@ -588,11 +590,76 @@ func (s *Server) handleNodes(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, out)
 }
 
+// handleNodeInfo lets a main server check the connection and credentials.
+func (s *Server) handleNodeInfo(w http.ResponseWriter, r *http.Request) {
+	info := app.PullInfo{Version: s.app.Version, Role: "node"}
+	if s.app.Panel != nil {
+		info.Panel = s.app.Panel.Name()
+	}
+	writeJSON(w, http.StatusOK, info)
+}
+
+// handleNodePull hands the queued batches to the main server.
+func (s *Server) handleNodePull(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	after, _ := strconv.ParseInt(q.Get("after"), 10, 64)
+	limit, _ := strconv.Atoi(q.Get("limit"))
+	res, err := s.app.ServePull(r.Context(), after, limit)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, res)
+}
+
+// handleNodeSpeed returns this server's own live speeds for a main server.
+func (s *Server) handleNodeSpeed(w http.ResponseWriter, r *http.Request) {
+	rates := s.app.Speed.Rates()
+	out := make(map[string][2]int64, len(rates))
+	for e, v := range rates {
+		out[e] = [2]int64{v.Up, v.Down}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"speeds": out})
+}
+
 func (s *Server) handleCreateNode(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Name string `json:"name"`
+		Name     string `json:"name"`
+		Mode     string `json:"mode"`
+		URL      string `json:"url"`
+		Username string `json:"username"`
+		Password string `json:"password"`
+		Proxy    string `json:"proxy"`
+		Insecure bool   `json:"insecure"`
 	}
 	if !readJSON(w, r, &req) {
+		return
+	}
+	if req.Mode == "pull" {
+		u, err := url.Parse(strings.TrimSpace(req.URL))
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+			fail(w, http.StatusBadRequest, "the address must look like http://203.0.113.5:8686 or https://node.example.com")
+			return
+		}
+		p := store.PullNode{Name: req.Name, URL: strings.TrimRight(u.String(), "/"), Username: strings.TrimSpace(req.Username),
+			Password: req.Password, Proxy: strings.TrimSpace(req.Proxy), Insecure: req.Insecure}
+		if p.Username == "" || p.Password == "" {
+			fail(w, http.StatusBadRequest, "the node's panel username and password are required")
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
+		defer cancel()
+		info, err := s.app.TestPullNode(ctx, p)
+		if err != nil {
+			fail(w, http.StatusBadGateway, "could not connect to the node: "+err.Error())
+			return
+		}
+		n, err := s.app.Store.CreatePullNode(p)
+		if err != nil {
+			fail(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"node": n, "info": info})
 		return
 	}
 	n, tok, err := s.app.Store.CreateNode(req.Name)

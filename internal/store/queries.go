@@ -472,16 +472,36 @@ func (s *Store) OldestTraffic5(ctx context.Context) (int64, error) {
 	return v.Int64, err
 }
 
-// Node is a remote collector connected to this server.
+// Node is a remote collector. Push nodes (agents) send their data to this
+// server with a token; pull nodes are contacted by this server, which signs
+// in to their XrayScope panel.
 type Node struct {
-	ID       int64  `json:"id"`
-	Name     string `json:"name"`
-	Created  int64  `json:"created_at"`
-	LastSeen int64  `json:"last_seen"`
-	LastIP   string `json:"last_ip"`
-	Version  string `json:"version"`
-	Panel    string `json:"panel"`
-	LinesIn  int64  `json:"lines_in"`
+	ID        int64  `json:"id"`
+	Name      string `json:"name"`
+	Created   int64  `json:"created_at"`
+	LastSeen  int64  `json:"last_seen"`
+	LastIP    string `json:"last_ip"`
+	Version   string `json:"version"`
+	Panel     string `json:"panel"`
+	LinesIn   int64  `json:"lines_in"`
+	Mode      string `json:"mode"` // "push" or "pull"
+	URL       string `json:"url,omitempty"`
+	Username  string `json:"username,omitempty"`
+	Proxy     string `json:"proxy,omitempty"`
+	Insecure  bool   `json:"insecure,omitempty"`
+	PullSeq   int64  `json:"pull_seq"`
+	LastError string `json:"last_error,omitempty"`
+}
+
+const nodeCols = `id,name,created_at,last_seen,last_ip,version,panel,lines_in,mode,url,username,proxy,insecure,pull_seq,last_error`
+
+func scanNode(sc interface{ Scan(...any) error }) (Node, error) {
+	var n Node
+	var ins int
+	err := sc.Scan(&n.ID, &n.Name, &n.Created, &n.LastSeen, &n.LastIP, &n.Version, &n.Panel, &n.LinesIn,
+		&n.Mode, &n.URL, &n.Username, &n.Proxy, &ins, &n.PullSeq, &n.LastError)
+	n.Insecure = ins != 0
+	return n, err
 }
 
 func hashToken(tok string) string {
@@ -489,44 +509,117 @@ func hashToken(tok string) string {
 	return hex.EncodeToString(h[:])
 }
 
-// CreateNode registers a node and returns its one-time secret token.
-func (s *Store) CreateNode(name string) (Node, string, error) {
-	name = strings.TrimSpace(name)
-	if name == "" || len(name) > 64 {
-		return Node{}, "", errors.New("invalid node name")
-	}
+func randomToken() (string, error) {
 	var raw [24]byte
 	if _, err := rand.Read(raw[:]); err != nil {
+		return "", err
+	}
+	return "xs_" + hex.EncodeToString(raw[:]), nil
+}
+
+func validNodeName(name string) (string, error) {
+	name = strings.TrimSpace(name)
+	if name == "" || len(name) > 64 {
+		return "", errors.New("invalid node name")
+	}
+	return name, nil
+}
+
+// CreateNode registers a push node (agent) and returns its one-time token.
+func (s *Store) CreateNode(name string) (Node, string, error) {
+	name, err := validNodeName(name)
+	if err != nil {
 		return Node{}, "", err
 	}
-	tok := "xs_" + hex.EncodeToString(raw[:])
+	tok, err := randomToken()
+	if err != nil {
+		return Node{}, "", err
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	now := time.Now().Unix()
-	res, err := s.w.Exec(`INSERT INTO nodes(name,token_hash,created_at) VALUES(?,?,?)`, name, hashToken(tok), now)
+	res, err := s.w.Exec(`INSERT INTO nodes(name,token_hash,created_at,mode) VALUES(?,?,?,'push')`, name, hashToken(tok), now)
 	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE") {
-			return Node{}, "", fmt.Errorf("a node named %q already exists", name)
-		}
-		return Node{}, "", err
+		return Node{}, "", uniqueNodeErr(name, err)
 	}
 	id, _ := res.LastInsertId()
-	return Node{ID: id, Name: name, Created: now}, tok, nil
+	return Node{ID: id, Name: name, Created: now, Mode: "push"}, tok, nil
 }
 
-// NodeByToken authenticates a node.
+func uniqueNodeErr(name string, err error) error {
+	if strings.Contains(err.Error(), "UNIQUE") {
+		return fmt.Errorf("a node named %q already exists", name)
+	}
+	return err
+}
+
+// PullNode holds the settings of a node this server contacts.
+type PullNode struct {
+	Name, URL, Username, Password, Proxy string
+	Insecure                             bool
+}
+
+// CreatePullNode registers a node that this server pulls data from.
+func (s *Store) CreatePullNode(p PullNode) (Node, error) {
+	name, err := validNodeName(p.Name)
+	if err != nil {
+		return Node{}, err
+	}
+	// pull nodes never authenticate with a token; the hash only keeps the
+	// column unique and unguessable
+	placeholder, err := randomToken()
+	if err != nil {
+		return Node{}, err
+	}
+	ins := 0
+	if p.Insecure {
+		ins = 1
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	now := time.Now().Unix()
+	res, err := s.w.Exec(`INSERT INTO nodes(name,token_hash,created_at,mode,url,username,password,proxy,insecure) VALUES(?,?,?,'pull',?,?,?,?,?)`,
+		name, hashToken(placeholder), now, p.URL, p.Username, p.Password, p.Proxy, ins)
+	if err != nil {
+		return Node{}, uniqueNodeErr(name, err)
+	}
+	id, _ := res.LastInsertId()
+	return Node{ID: id, Name: name, Created: now, Mode: "pull", URL: p.URL, Username: p.Username, Proxy: p.Proxy, Insecure: p.Insecure}, nil
+}
+
+// NodePassword returns the stored password of a pull node.
+func (s *Store) NodePassword(ctx context.Context, id int64) (string, error) {
+	var pw string
+	err := s.r.QueryRowContext(ctx, `SELECT password FROM nodes WHERE id=?`, id).Scan(&pw)
+	return pw, err
+}
+
+// NodeByToken authenticates a push node.
 func (s *Store) NodeByToken(ctx context.Context, tok string) (Node, error) {
-	var n Node
-	err := s.r.QueryRowContext(ctx, `SELECT id,name,created_at,last_seen,last_ip,version,panel,lines_in FROM nodes WHERE token_hash=?`, hashToken(tok)).
-		Scan(&n.ID, &n.Name, &n.Created, &n.LastSeen, &n.LastIP, &n.Version, &n.Panel, &n.LinesIn)
-	return n, err
+	return scanNode(s.r.QueryRowContext(ctx, `SELECT `+nodeCols+` FROM nodes WHERE token_hash=? AND mode='push'`, hashToken(tok)))
 }
 
 // TouchNode records node metadata on contact.
 func (s *Store) TouchNode(id int64, ip, version, panel string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	_, err := s.w.Exec(`UPDATE nodes SET last_seen=?, last_ip=?, version=?, panel=? WHERE id=?`, time.Now().Unix(), ip, version, panel, id)
+	_, err := s.w.Exec(`UPDATE nodes SET last_seen=?, last_ip=?, version=?, panel=?, last_error='' WHERE id=?`, time.Now().Unix(), ip, version, panel, id)
+	return err
+}
+
+// SetNodeError records why the last contact with a pull node failed.
+func (s *Store) SetNodeError(id int64, msg string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	_, err := s.w.Exec(`UPDATE nodes SET last_error=? WHERE id=?`, msg, id)
+	return err
+}
+
+// SetNodePullSeq remembers how far a pull node's outbox has been consumed.
+func (s *Store) SetNodePullSeq(id, seq int64) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	_, err := s.w.Exec(`UPDATE nodes SET pull_seq=? WHERE id=?`, seq, id)
 	return err
 }
 
@@ -540,15 +633,15 @@ func (s *Store) SetNodeLastSeen(id, ts int64) error {
 
 // Nodes lists registered nodes.
 func (s *Store) Nodes(ctx context.Context) ([]Node, error) {
-	rows, err := s.r.QueryContext(ctx, `SELECT id,name,created_at,last_seen,last_ip,version,panel,lines_in FROM nodes ORDER BY id`)
+	rows, err := s.r.QueryContext(ctx, `SELECT `+nodeCols+` FROM nodes ORDER BY id`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	var out []Node
 	for rows.Next() {
-		var n Node
-		if err := rows.Scan(&n.ID, &n.Name, &n.Created, &n.LastSeen, &n.LastIP, &n.Version, &n.Panel, &n.LinesIn); err != nil {
+		n, err := scanNode(rows)
+		if err != nil {
 			return nil, err
 		}
 		out = append(out, n)

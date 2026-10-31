@@ -47,7 +47,7 @@ func TestBackupCycle(t *testing.T) {
 	}
 	p, _ := backup.Path(bdir, info.Name)
 	f, _ := os.Open(p)
-	if err := backup.StageRestore(data, f, 1); err != nil {
+	if err := backup.StageRestore(data, f, store.SchemaVersion); err != nil {
 		t.Fatal(err)
 	}
 	f.Close()
