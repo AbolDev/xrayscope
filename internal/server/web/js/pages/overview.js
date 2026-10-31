@@ -33,12 +33,12 @@ export async function overviewPage(ctx) {
     { l: t('kpi.upload'), v: bytes(T.up), s: change(T.up, o.prev.up) },
   ]));
 
-  ctx.poll(async () => {
-    const sp = await api.get('speed');
+  const showSpeed = (sp) => {
     if (!sp.available) { speedV.textContent = '-'; speedS.textContent = t('speed.off'); return; }
     speedV.textContent = rate(sp.total.down);
     speedS.textContent = t('speed.up') + ' ' + rate(sp.total.up);
-  }, 3000);
+  };
+  ctx.live((snap) => showSpeed(snap.speed), async () => showSpeed(await api.get('speed')));
 
   // The one rich chart: download in the accent, upload in a neutral step.
   const traffic = h('div');

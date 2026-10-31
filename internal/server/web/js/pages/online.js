@@ -8,6 +8,7 @@ export async function onlinePage(ctx) {
   page.append(h('div', { class: 'row' }, h('b', null, t('online_n', { n: num(list.length) })), h('span', { class: 'muted' }, t('online_hint')), h('div', { class: 'spacer' }), total));
   if (!list.length) {
     page.append(panel(null, empty(t('nobody_online'), t('nobody_online_hint'))));
+    ctx.live((snap) => { if (snap.online.users > 0) ctx.refresh(); });
     return page;
   }
   const speedCells = new Map();
@@ -30,8 +31,8 @@ export async function onlinePage(ctx) {
   page.append(panel(null, h('div', null, rows), null, true));
   page.querySelector('.panel > .pb').style.padding = '0';
 
-  ctx.poll(async () => {
-    const sp = await api.get('speed');
+  const sig0 = list.map((u) => u.user_id + ':' + u.conns.length).sort().join(',');
+  const show = (sp) => {
     const by = new Map(sp.users.map((x) => [x.email, x]));
     for (const [email, cell] of speedCells) {
       const s = by.get(email);
@@ -39,6 +40,11 @@ export async function onlinePage(ctx) {
       cell.up.textContent = s ? t('speed.up') + ' ' + rate(s.up) : '';
     }
     total.textContent = sp.available ? t('speed.down') + ' ' + rate(sp.total.down) + '   ' + t('speed.up') + ' ' + rate(sp.total.up) : t('speed.off');
-  }, 3000);
+  };
+  // new arrivals and departures show up at once instead of at the next refresh
+  ctx.live((snap) => {
+    if (snap.sig !== sig0) { ctx.refresh(); return; }
+    show(snap.speed);
+  }, async () => show(await api.get('speed')));
   return page;
 }

@@ -66,12 +66,22 @@ function speedLine(id, ctx) {
   const box = h('div', { class: 'row', style: { gap: '12px', marginTop: '4px' } }, text);
   const strip = h('span');
   box.append(strip);
-  ctx.poll(async () => {
-    const s = await api.get(`users/${id}/speed`);
-    text.textContent = t('speed.down') + ' ' + rate(s.down) + '   ' + t('speed.up') + ' ' + rate(s.up);
-    const pts = s.history.slice(-60).map((p) => p.down);
+  let pts = [];
+  const draw = (up, down) => {
+    text.textContent = t('speed.down') + ' ' + rate(down) + '   ' + t('speed.up') + ' ' + rate(up);
     strip.replaceChildren(pts.length > 3 ? sparkline(pts, { width: 120, height: 18, live: true }) : '');
-  }, 3000);
+  };
+  // the history comes once from the server; the socket then adds one point per push
+  api.get(`users/${id}/speed`).then((s) => { pts = s.history.slice(-60).map((p) => p.down); draw(s.up, s.down); }).catch(() => {});
+  ctx.live((snap) => {
+    const row = snap.speed.users.find((x) => x.user_id === id);
+    pts = pts.concat(row ? row.down : 0).slice(-60);
+    draw(row ? row.up : 0, row ? row.down : 0);
+  }, async () => {
+    const s = await api.get(`users/${id}/speed`);
+    pts = s.history.slice(-60).map((p) => p.down);
+    draw(s.up, s.down);
+  });
   return box;
 }
 

@@ -2,6 +2,7 @@ import { api, setUnauthorizedHandler, guard } from './api.js';
 import {
   h, clear, state, t, setLang, setTheme, icon, RANGES, currentRange, setRange, toast, ymd, isFa, modal, failure, queryPut,
 } from './util.js';
+import { subscribe, isLive } from './live.js';
 import { loginPage } from './pages/login.js';
 import { overviewPage } from './pages/overview.js';
 import { usersPage } from './pages/users.js';
@@ -31,6 +32,7 @@ const ROUTES = [
 let timer = null;
 let renderToken = 0;
 const pollTimers = [];
+const liveOffs = [];
 
 function parseHash() {
   const raw = location.hash.replace(/^#\/?/, '');
@@ -118,13 +120,19 @@ function start() {
     buildRange(rangeBox, route, render);
 
     for (const id of pollTimers.splice(0)) clearInterval(id);
+    for (const off of liveOffs.splice(0)) off();
+    // live pushes snapshots over the WebSocket; fallback polls only while it is down
+    const live = (fn, fallback) => {
+      liveOffs.push(subscribe((snap) => { if (my === renderToken) fn(snap); }));
+      if (fallback) poll(() => (isLive() ? null : fallback()), 3000);
+    };
     // poll runs fn now and then every ms until the page is left (live figures such as speed)
     const poll = (fn, ms) => {
       const run = () => { if (!document.hidden && my === renderToken) Promise.resolve(fn()).catch(() => {}); };
       run();
       pollTimers.push(setInterval(run, ms));
     };
-    const ctx = { parts: parts.slice(1), query, range: currentRange(), go, poll, refresh: () => paint(true) };
+    const ctx = { parts: parts.slice(1), query, range: currentRange(), go, poll, live, refresh: () => paint(true) };
     const page = isUser ? userPage : route.page;
     const paint = async (soft) => {
       if (my !== renderToken) return;

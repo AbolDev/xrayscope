@@ -2,6 +2,7 @@
 package server
 
 import (
+	"bufio"
 	"compress/gzip"
 	"context"
 	"crypto/sha1"
@@ -150,6 +151,7 @@ func (s *Server) routes(mux *http.ServeMux) {
 	authed("POST /api/users/{id}/note", s.handleNote)
 	authed("DELETE /api/users/{id}", s.handleDeleteUser)
 	authed("GET /api/online", s.handleOnline)
+	authed("GET /api/live", s.handleLive)
 	authed("GET /api/speed", s.handleSpeed)
 	authed("GET /api/users/{id}/speed", s.handleUserSpeed)
 	authed("GET /api/ips/{ip}", s.handleIP)
@@ -351,6 +353,16 @@ func (g *gzipWriter) start() {
 		g.zw = gzPool.Get().(*gzip.Writer)
 		g.zw.Reset(g.ResponseWriter)
 	}
+}
+
+// Hijack lets the WebSocket endpoint take over the connection.
+func (g *gzipWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	hj, ok := g.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, errors.New("hijacking is not supported")
+	}
+	g.started = true // never compress a hijacked connection
+	return hj.Hijack()
 }
 
 func (g *gzipWriter) WriteHeader(code int) {

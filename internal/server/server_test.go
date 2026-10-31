@@ -1,14 +1,17 @@
 package server_test
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -163,6 +166,67 @@ func TestPullNode(t *testing.T) {
 	}
 	if strings.Contains(string(b), node.app.InitialPassword) {
 		t.Fatal("the node password must never be returned")
+	}
+}
+
+func TestLiveWebSocket(t *testing.T) {
+	e := newEnv(t)
+	e.login(t)
+	u, _ := url.Parse(e.srv.URL)
+	conn, err := net.Dial("tcp", u.Host)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	var cookie string
+	for _, c := range e.client.Jar.Cookies(u) {
+		cookie += c.Name + "=" + c.Value + "; "
+	}
+	fmt.Fprintf(conn, "GET /api/live HTTP/1.1\r\nHost: %s\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nAccept-Encoding: gzip\r\nCookie: %s\r\n\r\n", u.Host, cookie)
+	br := bufio.NewReader(conn)
+	conn.SetDeadline(time.Now().Add(10 * time.Second))
+	status, _ := br.ReadString('\n')
+	if !strings.Contains(status, "101") {
+		t.Fatalf("upgrade failed: %s", status)
+	}
+	for {
+		line, err := br.ReadString('\n')
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.HasPrefix(line, "Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=") {
+			break // the example key from RFC 6455
+		}
+		if line == "\r\n" {
+			t.Fatal("missing Sec-WebSocket-Accept")
+		}
+	}
+	for {
+		if line, _ := br.ReadString('\n'); line == "\r\n" {
+			break
+		}
+	}
+	var h [2]byte
+	if _, err := io.ReadFull(br, h[:]); err != nil || h[0] != 0x81 {
+		t.Fatalf("frame header %v %v", h, err)
+	}
+	n := int(h[1] & 0x7f)
+	if n == 126 {
+		var l [2]byte
+		io.ReadFull(br, l[:])
+		n = int(l[0])<<8 | int(l[1])
+	}
+	body := make([]byte, n)
+	if _, err := io.ReadFull(br, body); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(body), `"speed"`) || !strings.Contains(string(body), `"online"`) {
+		t.Fatalf("unexpected snapshot: %s", body)
+	}
+
+	// without a session the endpoint is closed
+	if code, _ := (&env{srv: e.srv, client: &http.Client{}}).do(t, "GET", "/api/live", nil); code != 401 {
+		t.Fatalf("anonymous /api/live: %d", code)
 	}
 }
 
