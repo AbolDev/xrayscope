@@ -114,9 +114,7 @@ function updatePanel(version) {
       r.can_install ? null : h('div', { class: 'alert' }, t('upd.manual')),
       h('div', null, h('button', { class: 'btn', onclick: check }, icon('refresh'), t('upd.check'))));
   };
-  // nothing leaves this server until the button is pressed
-  body.append(h('div', { class: 'muted' }, t('upd.manual_only')),
-    h('div', null, h('button', { class: 'btn', onclick: check }, icon('refresh'), t('upd.check'))));
+  check();
   return p;
 }
 

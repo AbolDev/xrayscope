@@ -93,7 +93,6 @@ const en = {
   'ev.expiry': 'Expiry', 'ev.node_offline': 'Node offline', 'ev.node_online': 'Node online', 'ev.log_stale': 'Log stalled', 'ev.backup': 'Backup',
 
   // nodes
-  'upd.manual_only': 'XrayScope never contacts GitHub on its own. Press the button to look for a new version.',
   'upd.title': 'Updates', 'upd.checking': 'Checking for updates…', 'upd.check': 'Check again', 'upd.stable': 'Stable', 'upd.beta': 'Beta', 'upd.none': 'no release yet',
   'upd.available': 'update available', 'upd.current': 'up to date', 'upd.install': 'Update', 'upd.notes': 'Release notes', 'upd.done': 'Updated. Restarting…',
   'upd.confirm': 'Install {v} and restart XrayScope? The panel is unavailable for a few seconds.', 'upd.manual': 'Updating from the panel is not available here. Re-run the install command instead.',
@@ -250,7 +249,6 @@ const fa = {
   'ev.max_ips': 'آی‌پی هم‌زمان زیاد', 'ev.new_ip': 'آی‌پی جدید', 'ev.new_country': 'کشور جدید', 'ev.traffic_spike': 'جهش ترافیک', 'ev.quota': 'حجم',
   'ev.expiry': 'انقضا', 'ev.node_offline': 'نود آفلاین', 'ev.node_online': 'نود آنلاین', 'ev.log_stale': 'توقف لاگ', 'ev.backup': 'پشتیبان',
 
-  'upd.manual_only': 'XrayScope هیچ‌وقت خودش به GitHub وصل نمی‌شود. برای جست‌وجوی نسخه‌ی جدید دکمه را بزنید.',
   'upd.title': 'به‌روزرسانی', 'upd.checking': 'در حال بررسی نسخه‌ی جدید…', 'upd.check': 'بررسی دوباره', 'upd.stable': 'پایدار', 'upd.beta': 'بتا', 'upd.none': 'هنوز نسخه‌ای منتشر نشده',
   'upd.available': 'نسخه‌ی جدید موجود است', 'upd.current': 'به‌روز است', 'upd.install': 'به‌روزرسانی', 'upd.notes': 'یادداشت انتشار', 'upd.done': 'به‌روز شد. در حال راه‌اندازی مجدد…',
   'upd.confirm': 'نسخه‌ی {v} نصب شود و XrayScope دوباره راه‌اندازی شود؟ پنل چند ثانیه در دسترس نیست.', 'upd.manual': 'به‌روزرسانی از داخل پنل اینجا ممکن نیست. دستور نصب را دوباره اجرا کنید.',

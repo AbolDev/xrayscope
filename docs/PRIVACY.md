@@ -22,7 +22,7 @@ XrayScope shows which sites individual people visited, when they were online and
 XrayScope works fully offline. The web panel loads nothing from other sites (fonts, scripts and icons are built in, and the Content-Security-Policy forbids external resources); GeoIP uses local database files and CDN detection uses a built-in table. The only outbound connections are ones you switch on or press:
 
 - **Telegram** – only when you configure a bot token.
-- **Update check / update** – only when you press the button in System. It talks to `api.github.com` and `github.com`, through the configured proxy if there is one. Offline, copy the binary to the server and run `XRAYSCOPE_BIN=/path/to/xrayscope bash install.sh`.
+- **Update check / update** – when you open the System page (and when you press the buttons there). It talks to `api.github.com` and `github.com`, through the configured proxy if there is one. Offline, copy the binary to the server and run `XRAYSCOPE_BIN=/path/to/xrayscope bash install.sh`.
 - **Pulled nodes** – only the node addresses you entered.
 
 ## Application security
