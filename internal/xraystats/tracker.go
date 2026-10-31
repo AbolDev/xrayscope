@@ -21,8 +21,8 @@ type Point struct {
 }
 
 const (
-	historyLen  = 150 // samples kept per user (five minutes at two seconds)
-	idleSamples = 30  // drop a user's history after this many silent samples
+	historyLen  = 300 // samples kept per user (five minutes at one second)
+	idleSamples = 60  // drop a user's history after this many silent samples
 )
 
 // Tracker samples a Querier and derives per-user speeds from the counter

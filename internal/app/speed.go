@@ -132,5 +132,5 @@ func (a *App) runSpeed(ctx context.Context) {
 	if a.Panel == nil && a.Cfg.XrayAPI == "" {
 		return
 	}
-	a.Speed.Run(ctx, 2*time.Second)
+	a.Speed.Run(ctx, time.Second)
 }

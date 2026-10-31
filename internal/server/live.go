@@ -16,7 +16,7 @@ import (
 )
 
 // liveEvery is how often a snapshot is pushed to every open panel.
-const liveEvery = 2 * time.Second
+const liveEvery = time.Second
 
 const wsGUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
@@ -29,7 +29,7 @@ type liveSnapshot struct {
 }
 
 func (s *Server) liveJSON(r *http.Request) ([]byte, error) {
-	return s.cached("live", liveEvery-300*time.Millisecond, func() (any, error) {
+	return s.cached("live", liveEvery*7/10, func() (any, error) {
 		snap := liveSnapshot{TS: time.Now().Unix(), Speed: s.app.Speeds(r.Context(), 200)}
 		online := s.app.Live.Online(s.app.Env().OnlineWin)
 		ips := 0

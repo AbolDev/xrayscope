@@ -292,7 +292,7 @@ func (a *App) pullWorker(ctx context.Context, n store.Node) {
 
 	pullTick := time.NewTicker(a.pullInterval())
 	defer pullTick.Stop()
-	speedEvery := 3 * time.Second
+	speedEvery := time.Second
 	if a.pullInterval() < speedEvery {
 		speedEvery = a.pullInterval()
 	}
