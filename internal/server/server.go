@@ -171,6 +171,8 @@ func (s *Server) routes(mux *http.ServeMux) {
 	authed("DELETE /api/backups/{name}", s.handleDeleteBackup)
 	authed("POST /api/backups/restore", s.handleRestore)
 	authed("POST /api/restart", s.handleRestart)
+	authed("GET /api/update", s.handleUpdateCheck)
+	authed("POST /api/update", s.handleUpdateApply)
 
 	mux.HandleFunc("GET /", s.handleStatic)
 }

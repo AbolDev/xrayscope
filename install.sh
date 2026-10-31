@@ -128,7 +128,7 @@ NoNewPrivileges=true
 ProtectSystem=full
 ProtectHome=true
 PrivateTmp=true
-ReadWritePaths=$DATA_DIR /etc/x-ui
+ReadWritePaths=$DATA_DIR /etc/x-ui $INSTALL_DIR
 
 [Install]
 WantedBy=multi-user.target

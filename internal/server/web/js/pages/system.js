@@ -45,6 +45,8 @@ export async function systemPage(ctx) {
     page.append(panel(t('sys.data_span'), h('div', null, fmtDate(st.db.first_hour * 3600) + '  -  ' + fmtDate(st.db.last_hour * 3600 + 3599))));
   }
 
+  page.append(updatePanel(st.version));
+
   // backups
   const fileInput = h('input', { type: 'file', accept: '.gz,.db', class: 'hidden', onchange: async (e) => {
     const f = e.target.files[0];
@@ -82,6 +84,38 @@ export async function systemPage(ctx) {
   const bp = panel(t('bk.title'), h('div', null, bar, pending, list), t('bk.count', { n: num(bk.backups.length) }), true);
   page.append(bp);
   return page;
+}
+
+function updatePanel(version) {
+  const body = h('div', { class: 'stack' });
+  const p = panel(t('upd.title'), body, 'v' + version);
+  const check = async () => {
+    body.replaceChildren(h('div', { class: 'muted' }, t('upd.checking')));
+    let r;
+    try { r = await api.get('update'); } catch (e) {
+      body.replaceChildren(h('div', { class: 'alert bad' }, e.message || String(e)),
+        h('div', null, h('button', { class: 'btn', onclick: check }, icon('refresh'), t('upd.check'))));
+      return;
+    }
+    const row = (ch) => {
+      const x = r[ch];
+      if (!x) return h('div', { class: 'row' }, h('b', null, t('upd.' + ch)), h('span', { class: 'muted' }, t('upd.none')));
+      return h('div', { class: 'row' },
+        h('b', null, t('upd.' + ch)), h('span', { class: 'mono' }, x.tag),
+        x.newer ? tag(t('upd.available'), 'ok') : tag(t('upd.current')),
+        x.newer && r.can_install ? h('button', { class: 'btn sm pri', onclick: async () => {
+          if (!(await confirmBox(t('upd.install'), t('upd.confirm', { v: x.tag }), false))) return;
+          const res = await guard(() => api.post('update', { channel: ch }));
+          if (res) { toast(t('upd.done'), 'ok'); setTimeout(() => location.reload(), 5000); }
+        } }, icon('download'), t('upd.install')) : null,
+        h('a', { class: 'btn sm', href: x.url, target: '_blank', rel: 'noopener' }, t('upd.notes')));
+    };
+    body.replaceChildren(row('stable'), row('beta'),
+      r.can_install ? null : h('div', { class: 'alert' }, t('upd.manual')),
+      h('div', null, h('button', { class: 'btn', onclick: check }, icon('refresh'), t('upd.check'))));
+  };
+  check();
+  return p;
 }
 
 function restartPrompt() {

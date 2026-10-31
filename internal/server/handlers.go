@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -22,9 +23,11 @@ import (
 	"xrayscope/internal/backup"
 	"xrayscope/internal/classify"
 	"xrayscope/internal/model"
+	"xrayscope/internal/netutil"
 	"xrayscope/internal/report"
 	"xrayscope/internal/settings"
 	"xrayscope/internal/store"
+	"xrayscope/internal/update"
 	"xrayscope/internal/xraystats"
 )
 
@@ -894,6 +897,85 @@ func (s *Server) handleRestart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+	if f, ok := w.(http.Flusher); ok {
+		f.Flush()
+	}
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		s.app.RestartFn()
+	}()
+}
+
+func updateRepo() string {
+	if r := os.Getenv("XRAYSCOPE_REPO"); r != "" {
+		return r
+	}
+	return update.DefaultRepo
+}
+
+// handleUpdateCheck reports the newest stable and beta releases.
+func (s *Server) handleUpdateCheck(w http.ResponseWriter, r *http.Request) {
+	hc, err := netutil.NewClient(netutil.Options{Proxy: s.app.Cfg.Proxy, Timeout: 20 * time.Second})
+	if err != nil {
+		fail(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 25*time.Second)
+	defer cancel()
+	list, err := update.Releases(ctx, hc, updateRepo())
+	if err != nil {
+		fail(w, http.StatusBadGateway, "could not reach GitHub: "+err.Error())
+		return
+	}
+	cur := s.app.Version
+	out := map[string]any{"current": cur, "releases": list, "can_install": runtime.GOOS == "linux" && s.app.RestartFn != nil}
+	for _, ch := range []string{"stable", "beta"} {
+		if rel, ok := update.Pick(list, ch); ok {
+			out[ch] = map[string]any{"tag": rel.Tag, "url": rel.URL, "newer": update.Newer(rel.Tag, cur)}
+		}
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+// handleUpdateApply installs a release and restarts.
+func (s *Server) handleUpdateApply(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Channel string `json:"channel"`
+	}
+	if !readJSON(w, r, &req) {
+		return
+	}
+	if s.app.RestartFn == nil {
+		fail(w, http.StatusNotImplemented, "restart is not available")
+		return
+	}
+	hc, err := netutil.NewClient(netutil.Options{Proxy: s.app.Cfg.Proxy, Timeout: 5 * time.Minute})
+	if err != nil {
+		fail(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 6*time.Minute)
+	defer cancel()
+	list, err := update.Releases(ctx, hc, updateRepo())
+	if err != nil {
+		fail(w, http.StatusBadGateway, "could not reach GitHub: "+err.Error())
+		return
+	}
+	rel, ok := update.Pick(list, req.Channel)
+	if !ok {
+		fail(w, http.StatusNotFound, "no release found for this channel")
+		return
+	}
+	if !update.Newer(rel.Tag, s.app.Version) {
+		fail(w, http.StatusConflict, "already up to date")
+		return
+	}
+	if err := update.Install(ctx, hc, updateRepo(), rel.Tag); err != nil {
+		fail(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	s.app.Log.Info("updated", "from", s.app.Version, "to", rel.Tag)
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "version": rel.Tag})
 	if f, ok := w.(http.Flusher); ok {
 		f.Flush()
 	}

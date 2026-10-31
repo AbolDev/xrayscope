@@ -93,6 +93,9 @@ const en = {
   'ev.expiry': 'Expiry', 'ev.node_offline': 'Node offline', 'ev.node_online': 'Node online', 'ev.log_stale': 'Log stalled', 'ev.backup': 'Backup',
 
   // nodes
+  'upd.title': 'Updates', 'upd.checking': 'Checking for updates…', 'upd.check': 'Check again', 'upd.stable': 'Stable', 'upd.beta': 'Beta', 'upd.none': 'no release yet',
+  'upd.available': 'update available', 'upd.current': 'up to date', 'upd.install': 'Update', 'upd.notes': 'Release notes', 'upd.done': 'Updated. Restarting…',
+  'upd.confirm': 'Install {v} and restart XrayScope? The panel is unavailable for a few seconds.', 'upd.manual': 'Updating from the panel is not available here. Re-run the install command instead.',
   'node.mode': 'Connection', 'node.mode_pull': 'This server connects to the node (recommended)', 'node.mode_push': 'The node connects to this server (install an agent)',
   'node.mode_help': 'Pull needs only the node\'s panel address and login; nothing is run on the node.', 'node.mode_pull_short': 'pulled', 'node.mode_push_short': 'agent',
   'node.url': 'Node address', 'node.url_help': 'The address of XrayScope on the node, e.g. http://203.0.113.5:8686.', 'node.user': 'Username', 'node.pass': 'Password',
@@ -246,6 +249,9 @@ const fa = {
   'ev.max_ips': 'آی‌پی هم‌زمان زیاد', 'ev.new_ip': 'آی‌پی جدید', 'ev.new_country': 'کشور جدید', 'ev.traffic_spike': 'جهش ترافیک', 'ev.quota': 'حجم',
   'ev.expiry': 'انقضا', 'ev.node_offline': 'نود آفلاین', 'ev.node_online': 'نود آنلاین', 'ev.log_stale': 'توقف لاگ', 'ev.backup': 'پشتیبان',
 
+  'upd.title': 'به‌روزرسانی', 'upd.checking': 'در حال بررسی نسخه‌ی جدید…', 'upd.check': 'بررسی دوباره', 'upd.stable': 'پایدار', 'upd.beta': 'بتا', 'upd.none': 'هنوز نسخه‌ای منتشر نشده',
+  'upd.available': 'نسخه‌ی جدید موجود است', 'upd.current': 'به‌روز است', 'upd.install': 'به‌روزرسانی', 'upd.notes': 'یادداشت انتشار', 'upd.done': 'به‌روز شد. در حال راه‌اندازی مجدد…',
+  'upd.confirm': 'نسخه‌ی {v} نصب شود و XrayScope دوباره راه‌اندازی شود؟ پنل چند ثانیه در دسترس نیست.', 'upd.manual': 'به‌روزرسانی از داخل پنل اینجا ممکن نیست. دستور نصب را دوباره اجرا کنید.',
   'node.mode': 'نوع اتصال', 'node.mode_pull': 'این سرور به نود وصل می‌شود (پیشنهادی)', 'node.mode_push': 'نود به این سرور وصل می‌شود (نصب Agent)',
   'node.mode_help': 'در حالت اول فقط آدرس و ورود پنل نود لازم است و روی نود چیزی اجرا نمی‌شود.', 'node.mode_pull_short': 'دریافتی', 'node.mode_push_short': 'ایجنت',
   'node.url': 'آدرس نود', 'node.url_help': 'آدرس XrayScope روی نود، مثل http://203.0.113.5:8686.', 'node.user': 'نام کاربری', 'node.pass': 'رمز عبور',
