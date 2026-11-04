@@ -96,6 +96,27 @@ func TestAccuracyDefaults(t *testing.T) {
 	}
 }
 
+// Settings saved with an earlier version's untouched defaults move to the
+// current defaults; values someone chose are kept.
+func TestOldDefaultsFollowNewOnes(t *testing.T) {
+	old := `{"language":"en","session_gap_min":5,"online_window_min":3,"accuracy":{"bridge_min":4,"traffic_bridge_max":45,"traffic_share":70,"active_kb":30,"heavy_kb":1024,"min_requests":2}}`
+	m, err := NewManager(memKV{kvKey: old})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.Get().Accuracy != DefaultAccuracy() {
+		t.Fatalf("untouched old defaults kept: %+v", m.Get().Accuracy)
+	}
+	chosen := `{"language":"en","session_gap_min":5,"online_window_min":3,"accuracy":{"bridge_min":8,"traffic_bridge_max":45,"traffic_share":70,"active_kb":30,"heavy_kb":1024,"min_requests":2}}`
+	m, err = NewManager(memKV{kvKey: chosen})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a := m.Get().Accuracy; a.BridgeMin != 8 || a.TrafficBridgeMax != 45 {
+		t.Fatalf("chosen values replaced: %+v", a)
+	}
+}
+
 func TestGetReturnsCopies(t *testing.T) {
 	m, _ := NewManager(memKV{})
 	s := m.Get()

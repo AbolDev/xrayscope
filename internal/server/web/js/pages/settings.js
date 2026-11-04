@@ -87,7 +87,7 @@ export async function settingsPage(ctx) {
 
   // ---- accuracy: the thresholds behind time, presence and device figures
   const ac = s.accuracy;
-  const DEF = { bridge_min: 4, traffic_bridge_max: 45, traffic_share: 70, active_kb: 30, heavy_kb: 1024, min_requests: 2, count_polling: false, separate_ip_changes: false };
+  const DEF = { bridge_min: 5, traffic_bridge_max: 30, traffic_share: 70, active_kb: 30, heavy_kb: 1024, min_requests: 2, count_polling: false, separate_ip_changes: false };
   const acBox = h('div');
   const drawAcc = () => acBox.replaceChildren(
     h('div', { class: 'cols c2' },

@@ -129,7 +129,7 @@ type TimeStat struct {
 // site stops counting. The access log only records when a connection opens,
 // so a video or a page being read leaves silent minutes in between that
 // still belong to the visit.
-const BridgeMinutes = 4
+const BridgeMinutes = 5
 
 // Tuning holds the adjustable thresholds of the time calculations.
 type Tuning struct {
@@ -186,7 +186,7 @@ func BridgeGaps(masks map[int64]int64, gap int) {
 // counts as time on it while the user's connection kept moving data.
 const (
 	// TrafficBridgeMax is the default longest pause bridged this way.
-	TrafficBridgeMax = 45
+	TrafficBridgeMax = 30
 	// trafficShare is the default share of the pause that must have traffic.
 	trafficShare = 70
 )

@@ -104,8 +104,29 @@ type Accuracy struct {
 }
 
 // DefaultAccuracy returns the built-in thresholds.
+//
+//   - BridgeMin 5: browsers and apps keep HTTP/2 and QUIC connections open and
+//     reuse them, so a page being read or a feed being scrolled can go a few
+//     minutes without a new log line.
+//   - TrafficBridgeMax 30: video and music players open new connections every
+//     few minutes anyway; a longer silent stretch with traffic is more often
+//     another app (a download, a backup) than the same site.
+//   - TrafficShare 70: a stream keeps almost every minute busy; background
+//     syncs do not.
+//   - ActiveKB 30: push channels and keep-alives move a few KB a minute.
+//   - HeavyKB 1024: about 140 kbit/s, the lowest video quality and most music
+//     streams; text browsing stays well below it.
+//   - MinRequests 2: one page view touches a site at least twice (page plus
+//     resources, or TCP and QUIC tried together); an embedded widget or
+//     tracker usually once.
 func DefaultAccuracy() Accuracy {
-	return Accuracy{BridgeMin: 4, TrafficBridgeMax: 45, TrafficShare: 70, ActiveKB: 30, HeavyKB: 1024, MinRequests: 2}
+	return Accuracy{BridgeMin: 5, TrafficBridgeMax: 30, TrafficShare: 70, ActiveKB: 30, HeavyKB: 1024, MinRequests: 2}
+}
+
+// previousDefaults are defaults of earlier versions. Settings that still hold
+// one of them unchanged follow the current defaults.
+var previousDefaults = []Accuracy{
+	{BridgeMin: 4, TrafficBridgeMax: 45, TrafficShare: 70, ActiveKB: 30, HeavyKB: 1024, MinRequests: 2},
 }
 
 func (a *Accuracy) validate() error {
@@ -286,6 +307,11 @@ func NewManager(kv KV) (*Manager, error) {
 		}
 		if err := m.cur.Validate(); err != nil {
 			m.cur = Defaults()
+		}
+		for _, old := range previousDefaults {
+			if m.cur.Accuracy == old {
+				m.cur.Accuracy = DefaultAccuracy()
+			}
 		}
 	}
 	return m, nil
