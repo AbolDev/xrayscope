@@ -336,7 +336,8 @@ func (a *App) pullWorker(ctx context.Context, n store.Node) {
 		var sp struct {
 			Speeds map[string][2]int64 `json:"speeds"`
 		}
-		if err := client.get(ctx, "/api/node/speed", &sp); err != nil {
+		ac := a.Settings.Get().Accuracy
+		if err := client.get(ctx, fmt.Sprintf("/api/node/speed?active_kb=%d&heavy_kb=%d", ac.ActiveKB, ac.HeavyKB), &sp); err != nil {
 			return
 		}
 		rates := make(map[string]xraystats.Rate, len(sp.Speeds))

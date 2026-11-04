@@ -119,9 +119,13 @@ func (e *Env) User(ctx ctxT, userID int64, rg Range) (*UserReport, error) {
 		return nil, err
 	}
 
-	// presence
-	pres := analytics.UnionMinutes(rows, analytics.Presence)
-	inter := analytics.UnionMinutes(rows, analytics.Interactive)
+	// presence and real use (cleaned like the time per site)
+	act, err := e.refineAct(ctx, userID, rg, rows)
+	if err != nil {
+		return nil, err
+	}
+	pres := analytics.UnionMinutes(act, analytics.Presence)
+	inter := analytics.UnionMinutes(act, analytics.Interactive)
 	a := &r.Activity
 	a.OnlineMinutes, a.InteractiveMinutes = int64(len(pres)), int64(len(inter))
 	sessions := analytics.Sessions(pres, e.GapMin)
@@ -137,18 +141,18 @@ func (e *Env) User(ctx ctxT, userID int64, rg Range) (*UserReport, error) {
 	if len(sessions) > 0 {
 		a.AvgSessionMin = total / int64(len(sessions))
 	}
-	a.Daily = analytics.Daily(rows, e.Loc)
+	a.Daily = analytics.Daily(act, e.Loc)
 	a.ActiveDays = len(a.Daily)
 	for _, d := range a.Daily {
 		a.Reqs += d.Reqs
 	}
-	a.Heatmap = analytics.Heatmap(rows, e.Loc, false)
+	a.Heatmap = analytics.Heatmap(act, e.Loc, false)
 	if rg.To-rg.From <= 7*86400 {
-		a.Hourly = analytics.HourlySeries(rows)
+		a.Hourly = analytics.HourlySeries(act)
 	}
 
 	// time spent and favourites
-	svcRows, err := e.Store.Svc(ctx, userID, rg.fromHour(), rg.toHour())
+	svcRows, err := e.Store.Svc(ctx, userID, rg.contextFromHour(), rg.toHour())
 	if err != nil {
 		return nil, err
 	}
@@ -156,11 +160,11 @@ func (e *Env) User(ctx ctxT, userID int64, rg Range) (*UserReport, error) {
 	if err != nil {
 		return nil, err
 	}
-	tact, err := e.Store.TAct(ctx, userID, rg.fromHour(), rg.toHour())
+	tact, err := e.Store.TAct(ctx, userID, rg.contextFromHour(), rg.toHour())
 	if err != nil {
 		return nil, err
 	}
-	r.ByCategory, r.ByService = analytics.TimeSpent(clipSvc(svcRows, rg), services, tact)
+	r.ByCategory, r.ByService = analytics.TimeSpent(svcRows, services, tact, rg.window())
 	for _, s := range r.ByService {
 		if favoriteCategories[s.Category] && len(r.Favorites[s.Category]) < 3 {
 			r.Favorites[s.Category] = append(r.Favorites[s.Category], s)
@@ -168,7 +172,7 @@ func (e *Env) User(ctx ctxT, userID int64, rg Range) (*UserReport, error) {
 	}
 
 	// sites
-	visits, err := e.Store.Visits(ctx, userID, rg.fromHour(), rg.toHour())
+	visits, err := e.Store.Visits(ctx, userID, rg.contextFromHour(), rg.toHour())
 	if err != nil {
 		return nil, err
 	}
@@ -321,8 +325,13 @@ func (e *Env) fillSleep(ctx ctxT, r *UserReport, rg Range) error {
 		return err
 	}
 	rows = clipAct(rows, wr)
-	pres := analytics.UnionMinutes(rows, analytics.Presence)
-	inter := analytics.UnionMinutes(rows, analytics.Interactive)
+	// an app polling in the background all night is not someone awake
+	act, err := e.refineAct(ctx, r.User.ID, wr, rows)
+	if err != nil {
+		return err
+	}
+	pres := analytics.UnionMinutes(act, analytics.Presence)
+	inter := analytics.UnionMinutes(act, analytics.Interactive)
 	// minutes with measured traffic show a device that stayed connected even
 	// when no new connection (and so no log line) was made
 	if tact, err := e.Store.TAct(ctx, r.User.ID, wr.fromHour(), wr.toHour()); err == nil {
@@ -376,7 +385,7 @@ type SiteList struct {
 
 // Sites lists the sites a user visited in a range.
 func (e *Env) Sites(ctx ctxT, userID int64, rg Range, q, category string, limit, offset int) (*SiteList, error) {
-	visits, err := e.Store.Visits(ctx, userID, rg.fromHour(), rg.toHour())
+	visits, err := e.Store.Visits(ctx, userID, rg.contextFromHour(), rg.toHour())
 	if err != nil {
 		return nil, err
 	}
@@ -396,7 +405,7 @@ func (e *Env) Sites(ctx ctxT, userID int64, rg Range, q, category string, limit,
 	if err != nil {
 		return nil, err
 	}
-	tact, err := e.Store.TAct(ctx, userID, rg.fromHour(), rg.toHour())
+	tact, err := e.Store.TAct(ctx, userID, rg.contextFromHour(), rg.toHour())
 	if err != nil {
 		return nil, err
 	}

@@ -62,6 +62,22 @@ func ClipMask(hour, mask, fromMin, toMin int64) int64 {
 	return mask
 }
 
+// contextFromHour is where service and visit rows are loaded from: at least
+// analytics.ContextDays before the end of the range, so automatic polling can
+// be told from a person's day even when the range is short.
+func (rg Range) contextFromHour() int64 {
+	from := rg.To - analytics.ContextDays*86400
+	if rg.From < from {
+		from = rg.From
+	}
+	return from / 3600
+}
+
+// window is the range in the form the analytics package counts in.
+func (rg Range) window() analytics.Window {
+	return analytics.Window{From: rg.fromMin(), To: rg.toMin()}
+}
+
 // clipAct applies ClipMask to presence rows and drops empty ones.
 func clipAct(rows []store.ActRow, rg Range) []store.ActRow {
 	out := rows[:0]

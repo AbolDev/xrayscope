@@ -94,6 +94,9 @@ func (e *Env) Overview(ctx ctxT, rg Range) (*Overview, error) {
 		return nil, err
 	}
 	rows = clipAct(rows, rg)
+	if rows, err = e.refineAct(ctx, 0, rg, rows); err != nil {
+		return nil, err
+	}
 
 	// per user / hour union
 	type uh struct{ user, hour int64 }
@@ -177,7 +180,7 @@ func (e *Env) Overview(ctx ctxT, rg Range) (*Overview, error) {
 	o.TopActive = head(o.TopActive, 10)
 
 	// categories and services
-	svcRows, err := e.Store.Svc(ctx, 0, rg.fromHour(), rg.toHour())
+	svcRows, err := e.Store.Svc(ctx, 0, rg.contextFromHour(), rg.toHour())
 	if err != nil {
 		return nil, err
 	}
@@ -185,11 +188,11 @@ func (e *Env) Overview(ctx ctxT, rg Range) (*Overview, error) {
 	if err != nil {
 		return nil, err
 	}
-	tact, err := e.Store.TAct(ctx, 0, rg.fromHour(), rg.toHour())
+	tact, err := e.Store.TAct(ctx, 0, rg.contextFromHour(), rg.toHour())
 	if err != nil {
 		return nil, err
 	}
-	o.Categories, o.Services = analytics.TimeSpent(clipSvc(svcRows, rg), services, tact)
+	o.Categories, o.Services = analytics.TimeSpent(svcRows, services, tact, rg.window())
 	o.Services = head(o.Services, 15)
 
 	o.Heatmap = analytics.Heatmap(rows, e.Loc, true)
@@ -309,6 +312,16 @@ func (e *Env) Users(ctx ctxT, rg Range) ([]UserRow, error) {
 	for _, r := range rows {
 		byUser[r.UserID] = append(byUser[r.UserID], r)
 	}
+	// minutes of real use, cleaned like the time per site; the raw rows stay
+	// for the address comparisons
+	refined, err := e.refineAct(ctx, 0, rg, rows)
+	if err != nil {
+		return nil, err
+	}
+	useBy := map[int64][]store.ActRow{}
+	for _, r := range refined {
+		useBy[r.UserID] = append(useBy[r.UserID], r)
+	}
 	tr, err := e.Store.TrafficHourly(ctx, 0, rg.fromHour(), rg.toHour())
 	if err != nil {
 		return nil, err
@@ -318,7 +331,7 @@ func (e *Env) Users(ctx ctxT, rg Range) ([]UserRow, error) {
 		up[p.UserID] += p.Up
 		down[p.UserID] += p.Down
 	}
-	svcRows, err := e.Store.Svc(ctx, 0, rg.fromHour(), rg.toHour())
+	svcRows, err := e.Store.Svc(ctx, 0, rg.contextFromHour(), rg.toHour())
 	if err != nil {
 		return nil, err
 	}
@@ -326,12 +339,12 @@ func (e *Env) Users(ctx ctxT, rg Range) ([]UserRow, error) {
 	if err != nil {
 		return nil, err
 	}
-	tactAll, err := e.Store.TAct(ctx, 0, rg.fromHour(), rg.toHour())
+	tactAll, err := e.Store.TAct(ctx, 0, rg.contextFromHour(), rg.toHour())
 	if err != nil {
 		return nil, err
 	}
 	svcBy := map[int64][]store.SvcRow{}
-	for _, r := range clipSvc(svcRows, rg) {
+	for _, r := range svcRows {
 		svcBy[r.UserID] = append(svcBy[r.UserID], r)
 	}
 	online := map[int64]live.Online{}
@@ -362,7 +375,8 @@ func (e *Env) Users(ctx ctxT, rg Range) ([]UserRow, error) {
 		}
 		r.Spark = make([]int, sparkN)
 		if rs := byUser[u.ID]; len(rs) > 0 {
-			pres := analytics.UnionMinutes(rs, analytics.Presence)
+			use := useBy[u.ID]
+			pres := analytics.UnionMinutes(use, analytics.Presence)
 			r.Minutes = int64(len(pres))
 			width := float64(rg.To-sparkStart) / float64(sparkN)
 			for _, m := range pres {
@@ -370,7 +384,7 @@ func (e *Env) Users(ctx ctxT, rg Range) ([]UserRow, error) {
 					r.Spark[i]++
 				}
 			}
-			r.Interactive = int64(len(analytics.UnionMinutes(rs, analytics.Interactive)))
+			r.Interactive = int64(len(analytics.UnionMinutes(use, analytics.Interactive)))
 			ipset := map[int64]bool{}
 			for _, x := range rs {
 				ipset[x.IPID] = true
@@ -379,7 +393,7 @@ func (e *Env) Users(ctx ctxT, rg Range) ([]UserRow, error) {
 			r.MaxIPs = analytics.MaxConcurrent(analytics.MergeHops(analytics.IPRuns(rs, e.GapMin), sameNet))
 		}
 		if sr := svcBy[u.ID]; len(sr) > 0 {
-			cats, svcs := analytics.TimeSpent(sr, services, tactAll)
+			cats, svcs := analytics.TimeSpent(sr, services, tactAll, rg.window())
 			for _, c := range cats {
 				if !isBackgroundCategory(c.Category) {
 					r.TopCategory = c.Category

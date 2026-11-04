@@ -77,6 +77,20 @@ func (t *Tracker) SetThresholds(active, heavy int64) {
 	t.mu.Unlock()
 }
 
+// Thresholds returns the active and heavy minute thresholds in bytes.
+func (t *Tracker) Thresholds() (active, heavy int64) {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	active, heavy = ActiveMinBytes, HeavyMinBytes
+	if t.activeMin > 0 {
+		active = t.activeMin
+	}
+	if t.heavyMin > 0 {
+		heavy = t.heavyMin
+	}
+	return active, heavy
+}
+
 // account adds one sample's transfer to the current minute and closes the
 // previous minute when a new one starts. The caller holds t.mu.
 func (t *Tracker) account(now time.Time, moved map[string]int64) {

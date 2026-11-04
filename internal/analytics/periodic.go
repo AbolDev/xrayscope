@@ -15,7 +15,32 @@ const (
 	periodicMaxCV     = 0.25 // spread of the intervals relative to their mean
 	periodicMinGap    = 2    // minutes between pulses, at least
 	periodicMaxGap    = 180  // and at most
+	periodicMinCover  = 0.75 // share of the hours in their span that pulses reach
+	periodicMinSpan   = 20   // hours the pulses must span
+
+	// ContextDays is how much history before a short range is looked at to
+	// judge polling; callers load rows from this far back and pass the range
+	// to count in.
+	ContextDays = 3
 )
+
+// clipMask keeps the minutes of an hour mask inside [from, to) unix minutes.
+func clipMask(hour, mask, from, to int64) int64 {
+	base := hour * 60
+	if from > base {
+		if from >= base+60 {
+			return 0
+		}
+		mask &^= (int64(1) << uint(from-base)) - 1
+	}
+	if to < base+60 {
+		if to <= base {
+			return 0
+		}
+		mask &= (int64(1) << uint(to-base)) - 1
+	}
+	return mask
+}
 
 // IsPeriodic reports whether sorted unique minutes look like automatic
 // polling rather than use.
@@ -39,6 +64,16 @@ func IsPeriodic(mins []int64) bool {
 	}
 	if len(starts) < periodicMinPulses || long*10 > len(starts) {
 		return false // too few pulses, or real stretches of use among them
+	}
+	// a machine keeps going around the clock; a person, however regular,
+	// stops for the night: the pulses must reach most hours of their span
+	hours := map[int64]bool{}
+	for _, s := range starts {
+		hours[s/60] = true
+	}
+	span := starts[len(starts)-1]/60 - starts[0]/60 + 1
+	if span < periodicMinSpan || float64(len(hours)) < periodicMinCover*float64(span) {
+		return false // under a day nobody can tell a person's day from a machine
 	}
 	gaps := make([]float64, 0, len(starts)-1)
 	for i := 1; i < len(starts); i++ {

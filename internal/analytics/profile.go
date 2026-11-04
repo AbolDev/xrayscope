@@ -5,6 +5,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"xrayscope/internal/classify"
 	"xrayscope/internal/store"
 )
 
@@ -230,30 +231,32 @@ func BridgeTraffic(masks map[int64]int64, tr map[int64]int64) {
 	}
 }
 
-// TimeSpent aggregates service time. Category totals use the union of
-// minutes across services so parallel use is not double counted. Per-user
-// results are summed when rows from several users are given.
-//
-// tact (user -> hour -> minute mask, may be nil) holds the minutes with real
-// traffic; it lets pauses longer than BridgeMinutes count while data flowed.
-func TimeSpent(rows []store.SvcRow, services map[int64]store.Service, tact map[int64]map[int64]int64) (byCategory, byService []TimeStat) {
-	byCategory, byService = []TimeStat{}, []TimeStat{}
-	type ck struct {
-		user int64
-		cat  string
-		hour int64
+type userService struct{ user, svc int64 }
+
+// Window is the period to count in, in unix minutes. Rows may reach further
+// back (see ContextDays) so polling can be judged; the zero Window counts
+// everything.
+type Window struct{ From, To int64 }
+
+func (w Window) all() bool { return w.From == 0 && w.To == 0 }
+
+// hourIn reports whether any minute of the hour lies in the window.
+func (w Window) hourIn(h int64) bool { return w.all() || (h*60+59 >= w.From && h*60 < w.To) }
+
+func (w Window) clip(h, mask int64) int64 {
+	if w.all() {
+		return mask
 	}
-	catMask := map[ck]int64{}
-	type sk struct {
-		cat, name string
-	}
-	svcMin := map[sk]int64{}
-	svcReqs := map[sk]int64{}
-	catReqs := map[string]int64{}
-	type uk struct{ user, svc int64 }
-	groups := map[uk]map[int64]int64{}
+	return clipMask(h, mask, w.From, w.To)
+}
+
+// cleanGroups merges service rows per user and service, then drops automatic
+// polling and bridges pauses: the minutes in which each service was really
+// in use (hour -> minute mask), clipped to the window.
+func cleanGroups(rows []store.SvcRow, tact map[int64]map[int64]int64, w Window) map[userService]map[int64]int64 {
+	groups := map[userService]map[int64]int64{}
 	for _, r := range rows {
-		k := uk{r.UserID, r.ServiceID}
+		k := userService{r.UserID, r.ServiceID}
 		if groups[k] == nil {
 			groups[k] = map[int64]int64{}
 		}
@@ -271,13 +274,68 @@ func TimeSpent(rows []store.SvcRow, services map[int64]store.Service, tact map[i
 		BridgeGaps(m, tu.BridgeMin)
 		BridgeTraffic(m, tact[k.user])
 	}
+	if !w.all() {
+		for _, m := range groups {
+			for h, x := range m {
+				m[h] = w.clip(h, x)
+			}
+		}
+	}
+	return groups
+}
+
+// UseMinutes returns, per user, the minutes of real use within the window
+// (hour -> minute mask): the cleaned minutes of every foreground service
+// together. It is the same basis as TimeSpent, so a user's active time and
+// the time per category agree.
+func UseMinutes(rows []store.SvcRow, services map[int64]store.Service, tact map[int64]map[int64]int64, w Window) map[int64]map[int64]int64 {
+	out := map[int64]map[int64]int64{}
+	for k, hours := range cleanGroups(rows, tact, w) {
+		if classify.IsBackground(services[k.svc].Category) {
+			continue
+		}
+		for h, m := range hours {
+			if m == 0 {
+				continue
+			}
+			if out[k.user] == nil {
+				out[k.user] = map[int64]int64{}
+			}
+			out[k.user][h] |= m
+		}
+	}
+	return out
+}
+
+// TimeSpent aggregates service time. Category totals use the union of
+// minutes across services so parallel use is not double counted. Per-user
+// results are summed when rows from several users are given.
+//
+// tact (user -> hour -> minute mask, may be nil) holds the minutes with real
+// traffic; it lets pauses longer than BridgeMinutes count while data flowed.
+// Only minutes and requests inside the window are counted.
+func TimeSpent(rows []store.SvcRow, services map[int64]store.Service, tact map[int64]map[int64]int64, w Window) (byCategory, byService []TimeStat) {
+	byCategory, byService = []TimeStat{}, []TimeStat{}
+	type ck struct {
+		user int64
+		cat  string
+		hour int64
+	}
+	catMask := map[ck]int64{}
+	type sk struct {
+		cat, name string
+	}
+	svcMin := map[sk]int64{}
+	svcReqs := map[sk]int64{}
+	catReqs := map[string]int64{}
+	groups := cleanGroups(rows, tact, w)
 	for _, r := range rows {
 		sv, ok := services[r.ServiceID]
-		if !ok {
+		if !ok || !w.hourIn(r.Hour) {
 			continue
 		}
 		// the first row of a (user, service, hour) carries the bridged minutes
-		k := uk{r.UserID, r.ServiceID}
+		k := userService{r.UserID, r.ServiceID}
 		mask := groups[k][r.Hour]
 		delete(groups[k], r.Hour)
 		catMask[ck{r.UserID, sv.Category, r.Hour}] |= mask
@@ -317,8 +375,9 @@ type SiteStat struct {
 	Bytes int64 `json:"bytes"`
 }
 
-// Sites aggregates visit rows per site. Daily (compacted) rows contribute
-// hours*60 as an upper bound for minutes.
+// Sites aggregates visit rows per site within [from, to) unix minutes. Rows
+// may reach further back (ContextDays) so polling can be judged. Daily
+// (compacted) rows contribute hours*60 as an upper bound for minutes.
 //
 // tr (hour -> minute mask, may be nil) holds the user's minutes with real
 // traffic, as for TimeSpent.
@@ -364,6 +423,9 @@ func Sites(rows []store.VisitRow, domains map[int64]store.Domain, services map[i
 				continue
 			}
 			delete(bridged[r.DomainID], r.Slot)
+			if m := clipMask(r.Slot, mask, from, to); m != 0 {
+				mask = m
+			}
 			mins = int64(PopCount(mask))
 			first = r.Slot*60 + int64(lowBit(mask))
 			last = r.Slot*60 + int64(highBit(mask))
@@ -371,6 +433,9 @@ func Sites(rows []store.VisitRow, domains map[int64]store.Domain, services map[i
 				mins = 0 // automatic polling is not time spent
 			}
 		} else {
+			if r.Slot+24 <= from/60 || r.Slot >= (to+59)/60 {
+				continue // a day outside the range, loaded only as context
+			}
 			mins = int64(PopCount(r.Mask)) * 60
 			first = r.Slot*60 + int64(lowBit(r.Mask))*60
 			last = r.Slot*60 + int64(highBit(r.Mask))*60 + 59

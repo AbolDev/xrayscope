@@ -479,6 +479,15 @@ func (a *Agent) runSpeed(ctx context.Context) {
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+a.cfg.Token)
 		if resp, err := a.client.Do(req); err == nil {
+			// the main server tells how it wants traffic minutes measured
+			var ans struct {
+				ActiveKB int64 `json:"active_kb"`
+				HeavyKB  int64 `json:"heavy_kb"`
+			}
+			if resp.StatusCode == http.StatusOK && json.NewDecoder(io.LimitReader(resp.Body, 1<<10)).Decode(&ans) == nil &&
+				ans.ActiveKB >= 1 && ans.HeavyKB >= ans.ActiveKB {
+				tr.SetThresholds(ans.ActiveKB<<10, ans.HeavyKB<<10)
+			}
 			io.Copy(io.Discard, io.LimitReader(resp.Body, 1<<10))
 			resp.Body.Close()
 		}

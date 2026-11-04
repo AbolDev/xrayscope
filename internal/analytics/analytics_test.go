@@ -57,9 +57,9 @@ func TestEstimateSiteBytes(t *testing.T) {
 }
 
 func TestIsPeriodic(t *testing.T) {
-	// a ping every 5 minutes for two hours (one minute late now and then)
+	// a ping every 5 minutes for thirty hours (one minute late now and then)
 	var poll []int64
-	for i := int64(0); i < 24; i++ {
+	for i := int64(0); i < 360; i++ {
 		m := 1000 + i*5
 		if i%7 == 3 {
 			m++
@@ -81,6 +81,28 @@ func TestIsPeriodic(t *testing.T) {
 	}
 	if IsPeriodic(poll[:6]) {
 		t.Fatal("too little evidence must not be judged")
+	}
+	// a very regular person: every 4 minutes from 08:00 to 23:00, three days
+	var regular []int64
+	for d := int64(0); d < 3; d++ {
+		for m := int64(8 * 60); m < 23*60; m += 4 {
+			regular = append(regular, d*1440+m)
+		}
+	}
+	if IsPeriodic(regular) {
+		t.Fatal("use that stops every night taken for polling")
+	}
+	// a single day of it cannot be judged at all
+	if IsPeriodic(regular[:len(regular)/3]) {
+		t.Fatal("a single day judged as polling")
+	}
+	// the same rhythm around the clock is a machine
+	var machine []int64
+	for m := int64(0); m < 3*1440; m += 4 {
+		machine = append(machine, m)
+	}
+	if !IsPeriodic(machine) {
+		t.Fatal("round-the-clock polling not detected")
 	}
 }
 
@@ -131,12 +153,12 @@ func TestTuningTurnsBridgingOff(t *testing.T) {
 	defer SetTuning(DefaultTuning())
 	services := map[int64]store.Service{1: {ID: 1, Category: "video", Name: "YouTube"}}
 	rows := []store.SvcRow{{UserID: 1, ServiceID: 1, Hour: 10, Mask: 1<<0 | 1<<3, Reqs: 4}}
-	_, svcs := TimeSpent(rows, services, nil)
+	_, svcs := TimeSpent(rows, services, nil, Window{})
 	if svcs[0].Minutes != 4 {
 		t.Fatalf("default: %d minutes", svcs[0].Minutes)
 	}
 	SetTuning(Tuning{BridgeMin: 0, TrafficMax: 0, TrafficShare: 70})
-	_, svcs = TimeSpent(rows, services, nil)
+	_, svcs = TimeSpent(rows, services, nil, Window{})
 	if svcs[0].Minutes != 2 {
 		t.Fatalf("bridging off: %d minutes", svcs[0].Minutes)
 	}
@@ -337,7 +359,7 @@ func TestTimeSpentUsesUnionPerCategory(t *testing.T) {
 		{Hour: 10, UserID: 1, ServiceID: 1, Mask: 0b1111, Reqs: 4},
 		{Hour: 10, UserID: 1, ServiceID: 2, Mask: 0b1100, Reqs: 2},
 	}
-	cats, svcs := TimeSpent(rows, services, nil)
+	cats, svcs := TimeSpent(rows, services, nil, Window{})
 	if len(cats) != 1 || cats[0].Minutes != 4 || cats[0].Reqs != 6 {
 		t.Fatalf("cats = %+v", cats)
 	}

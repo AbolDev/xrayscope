@@ -550,7 +550,9 @@ func (s *Server) handleIngestSpeed(w http.ResponseWriter, r *http.Request) {
 		rates[email] = xraystats.Rate{Up: v[0], Down: v[1]}
 	}
 	s.app.SpeedBook.Set(fmt.Sprintf("node:%d", node.ID), rates)
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+	// the node measures its traffic minutes with this server's thresholds
+	ac := s.app.Settings.Get().Accuracy
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "active_kb": ac.ActiveKB, "heavy_kb": ac.HeavyKB})
 }
 
 func (s *Server) handleIP(w http.ResponseWriter, r *http.Request) {
@@ -624,7 +626,15 @@ func (s *Server) handleNodePull(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleNodeSpeed returns this server's own live speeds for a main server.
+// The main server passes its traffic-minute thresholds along, so minutes are
+// measured the same way on every server.
 func (s *Server) handleNodeSpeed(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	active, _ := strconv.ParseInt(q.Get("active_kb"), 10, 64)
+	heavy, _ := strconv.ParseInt(q.Get("heavy_kb"), 10, 64)
+	if active >= 1 && active <= 10240 && heavy >= active && heavy <= 102400 {
+		s.app.Speed.SetThresholds(active<<10, heavy<<10)
+	}
 	rates := s.app.Speed.Rates()
 	out := make(map[string][2]int64, len(rates))
 	for e, v := range rates {

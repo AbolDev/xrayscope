@@ -67,7 +67,9 @@ The **Data quality** card in System shows, per inbound, the share of connections
 
 The card also counts QUIC (UDP 443) connections without a site name per inbound; a high share means "quic" is missing from the sniffing `destOverride`, which hides much of YouTube, Instagram and Google.
 
-All thresholds above can be tuned under **Settings → Accuracy** (short pause, pause with traffic and its share, requests per minute, active and heavy minute in KB, counting polling, keeping address changes apart). Time and device figures are recalculated with the new values; the request and data thresholds apply to data collected afterwards. Nodes that push data measure traffic minutes with the default thresholds.
+A user's **active time**, daily and hourly charts, the heatmap, the day timeline and the sleep analysis are built from the same cleaned minutes as the time per site (`analytics.UseMinutes`: polling removed, pauses bridged), so the figures agree with each other; address comparisons (concurrency, IP sessions) keep using the raw rows. Polling is judged over at least `analytics.ContextDays` (3) days ending at the range, because within a single day a steady person and a machine look alike; only minutes inside the range are counted.
+
+All thresholds above can be tuned under **Settings → Accuracy** (short pause, pause with traffic and its share, requests per minute, active and heavy minute in KB, counting polling, keeping address changes apart). Time and device figures are recalculated with the new values; the request and data thresholds apply to data collected afterwards. Nodes measure traffic minutes with the main server's thresholds: agents receive them in the answer to every speed report, pulled nodes with every speed request.
 
 Sites no rule knows are listed in Settings, where one click files them under a category.
 

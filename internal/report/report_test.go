@@ -84,6 +84,12 @@ func TestUserReport(t *testing.T) {
 	if len(r.ByCategory) == 0 || r.ByCategory[0].Category == "" {
 		t.Fatalf("categories = %+v", r.ByCategory)
 	}
+	// active time and time per category are built on the same minutes
+	for _, c := range r.ByCategory {
+		if c.Minutes > r.Activity.InteractiveMinutes && !isBackgroundCategory(c.Category) {
+			t.Fatalf("%s has %d minutes, more than the %d active minutes", c.Category, c.Minutes, r.Activity.InteractiveMinutes)
+		}
+	}
 	if len(r.TopSites) == 0 {
 		t.Fatal("no sites")
 	}

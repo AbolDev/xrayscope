@@ -160,6 +160,17 @@ func TestPullNode(t *testing.T) {
 		return false
 	})
 
+	// the node measures traffic minutes with the main server's thresholds
+	st := main.app.Settings.Get()
+	st.Accuracy.ActiveKB, st.Accuracy.HeavyKB = 64, 2048
+	if err := main.app.Settings.Set(st); err != nil {
+		t.Fatal(err)
+	}
+	waitUntil(t, "thresholds passed to the node", func() bool {
+		a, h := node.app.Speed.Thresholds()
+		return a == 64<<10 && h == 2048<<10
+	})
+
 	_, b = main.do(t, "GET", "/api/nodes", nil)
 	if !strings.Contains(string(b), `"mode":"pull"`) {
 		t.Fatalf("node list lacks the pull node: %s", b)
@@ -489,6 +500,19 @@ func TestNodeAgent(t *testing.T) {
 	_, b = e.do(t, "GET", "/api/nodes", nil)
 	if !strings.Contains(string(b), `"online":true`) || !strings.Contains(string(b), "de-1") {
 		t.Errorf("nodes = %s", b)
+	}
+
+	// the answer to a speed report carries the thresholds for traffic minutes
+	sreq, _ := http.NewRequest("POST", e.srv.URL+"/api/ingest/speed", strings.NewReader(`{"speeds":{}}`))
+	sreq.Header.Set("Authorization", "Bearer "+created.Token)
+	sresp, err := http.DefaultClient.Do(sreq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sb, _ := io.ReadAll(sresp.Body)
+	sresp.Body.Close()
+	if !strings.Contains(string(sb), `"active_kb":30`) || !strings.Contains(string(sb), `"heavy_kb":1024`) {
+		t.Errorf("speed answer = %s", sb)
 	}
 
 	// a wrong token is refused

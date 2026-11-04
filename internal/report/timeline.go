@@ -71,16 +71,24 @@ func (e *Env) Timeline(ctx ctxT, userID int64, date string) (*Timeline, error) {
 		return nil, err
 	}
 	rows = clipAct(rows, rg)
+	act, err := e.refineAct(ctx, userID, rg, rows)
+	if err != nil {
+		return nil, err
+	}
 
 	strip := make([]byte, t.Minutes)
 	for i := range strip {
 		strip[i] = '0'
 	}
-	for _, m := range analytics.UnionMinutes(rows, analytics.Presence) {
-		strip[m-startMin] = '1'
+	for _, m := range analytics.UnionMinutes(act, analytics.Presence) {
+		if i := m - startMin; i >= 0 && i < int64(len(strip)) {
+			strip[i] = '1'
+		}
 	}
-	for _, m := range analytics.UnionMinutes(rows, analytics.Interactive) {
-		strip[m-startMin] = '2'
+	for _, m := range analytics.UnionMinutes(act, analytics.Interactive) {
+		if i := m - startMin; i >= 0 && i < int64(len(strip)) {
+			strip[i] = '2'
+		}
 	}
 	t.Strip = string(strip)
 
