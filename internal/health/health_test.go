@@ -17,6 +17,8 @@ func TestInbounds(t *testing.T) {
 	add("in-443", "203.0.113.9", "142.250.1.1", "a")
 	add("in-ws", "104.21.3.9", "example.com", "b") // a Cloudflare edge as the client
 	add("in-ws", "104.21.3.9", "example.com", "c")
+	m.Observe(parser.Entry{Time: now, SrcIP: "203.0.113.9", Network: "udp", Host: "142.250.1.1", Port: 443, InTag: "in-443", Email: "a"}, now)
+	m.Observe(parser.Entry{Time: now, SrcIP: "203.0.113.9", Network: "udp", Host: "www.youtube.com", Port: 443, InTag: "in-443", Email: "a"}, now)
 	got := m.Inbounds()
 	if len(got) != 2 {
 		t.Fatalf("inbounds = %+v", got)
@@ -25,7 +27,7 @@ func TestInbounds(t *testing.T) {
 	for _, x := range got {
 		by[x.Tag] = x
 	}
-	if x := by["in-443"]; x.Requests != 2 || x.IPDest != 1 || x.CDNSrc != 0 || x.Users != 1 {
+	if x := by["in-443"]; x.Requests != 4 || x.IPDest != 2 || x.CDNSrc != 0 || x.Users != 1 || x.Quic != 2 || x.QuicIP != 1 {
 		t.Fatalf("in-443 = %+v", x)
 	}
 	if x := by["in-ws"]; x.CDNSrc != 2 || x.Users != 2 {

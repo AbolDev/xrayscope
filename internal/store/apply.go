@@ -34,9 +34,25 @@ type span struct{ first, last int64 }
 
 const maxHostCache = 200000
 
-// MinInteractiveReqs is how many requests to one site within a minute make
-// that minute count as use of the site.
+// MinInteractiveReqs is the default number of requests to one site within a
+// minute that make that minute count as use of the site.
 const MinInteractiveReqs = 2
+
+// SetMinRequests changes how many requests to one site within a minute make
+// that minute count as use (applies to data stored from now on).
+func (s *Store) SetMinRequests(n int) {
+	if n < 1 {
+		n = MinInteractiveReqs
+	}
+	s.minReqs.Store(int64(n))
+}
+
+func (s *Store) minRequests() int {
+	if n := s.minReqs.Load(); n > 0 {
+		return int(n)
+	}
+	return MinInteractiveReqs
+}
 
 type recentKey struct{ minute, user, dom int64 }
 
@@ -73,6 +89,7 @@ func (s *Store) ApplyBatch(nodeID int64, recs []model.Rec, kv map[string]string,
 	}()
 
 	cls := s.cls.Load()
+	minReqs := s.minRequests()
 	act := map[actKey]*actVal{}
 	svc := map[svcRowKey]*maskVal{}
 	vis := map[visitKey]*maskVal{}
@@ -111,7 +128,7 @@ func (s *Store) ApplyBatch(nodeID int64, recs []model.Rec, kv map[string]string,
 		rk := recentKey{r.M, uid, hi.domID}
 		cum := s.recent[rk] + r.N
 		s.recent[rk] = cum
-		engaged := hi.bg || cum >= MinInteractiveReqs
+		engaged := hi.bg || cum >= minReqs
 
 		a := act[actKey{hour, uid, ipid}]
 		if a == nil {

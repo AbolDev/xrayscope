@@ -2,6 +2,7 @@ package analytics
 
 import (
 	"sort"
+	"sync/atomic"
 	"time"
 
 	"xrayscope/internal/store"
@@ -124,11 +125,36 @@ type TimeStat struct {
 	Reqs     int64  `json:"reqs"`
 }
 
-// BridgeMinutes is how long a pause may be before time on a site stops
-// counting. The access log only records when a connection opens, so a video
-// or a page being read leaves silent minutes in between that still belong to
-// the visit.
-var BridgeMinutes = 4
+// BridgeMinutes is the default for how long a pause may be before time on a
+// site stops counting. The access log only records when a connection opens,
+// so a video or a page being read leaves silent minutes in between that
+// still belong to the visit.
+const BridgeMinutes = 4
+
+// Tuning holds the adjustable thresholds of the time calculations.
+type Tuning struct {
+	BridgeMin    int  // short pauses always bridged (0 = off)
+	TrafficMax   int  // longest pause bridged while data flowed (0 = off)
+	TrafficShare int  // percent of such a pause that must carry traffic
+	CountPolling bool // count machine-regular polling as time spent
+}
+
+// DefaultTuning returns the built-in thresholds.
+func DefaultTuning() Tuning {
+	return Tuning{BridgeMin: BridgeMinutes, TrafficMax: TrafficBridgeMax, TrafficShare: trafficShare}
+}
+
+var tuning atomic.Pointer[Tuning]
+
+// SetTuning changes the thresholds used by every later calculation.
+func SetTuning(t Tuning) { tuning.Store(&t) }
+
+func currentTuning() Tuning {
+	if t := tuning.Load(); t != nil {
+		return *t
+	}
+	return DefaultTuning()
+}
 
 // BridgeGaps fills the quiet minutes between two active minutes when fewer
 // than gap of them lie in between. masks maps an absolute hour to its 60-bit
@@ -159,17 +185,19 @@ func BridgeGaps(masks map[int64]int64, gap int) {
 // Traffic-based bridging: a longer pause between two visits of a site still
 // counts as time on it while the user's connection kept moving data.
 const (
-	// TrafficBridgeMax is the longest pause that can be bridged this way.
+	// TrafficBridgeMax is the default longest pause bridged this way.
 	TrafficBridgeMax = 45
-	// trafficShare is the share of the pause that must have real traffic.
+	// trafficShare is the default share of the pause that must have traffic.
 	trafficShare = 70
 )
 
-// BridgeTraffic fills pauses of up to TrafficBridgeMax minutes between two
-// active minutes when at least trafficShare percent of the pause carried
-// traffic (tr: hour -> minute mask). It is meant to run after BridgeGaps.
+// BridgeTraffic fills pauses of up to the tuned maximum between two active
+// minutes when at least the tuned share of the pause carried traffic (tr:
+// hour -> minute mask). It is meant to run after BridgeGaps.
 func BridgeTraffic(masks map[int64]int64, tr map[int64]int64) {
-	if len(masks) == 0 || len(tr) == 0 {
+	tu := currentTuning()
+	maxGap, share := int64(tu.TrafficMax), int64(tu.TrafficShare)
+	if len(masks) == 0 || len(tr) == 0 || maxGap <= 0 {
 		return
 	}
 	hours := make([]int64, 0, len(masks))
@@ -185,7 +213,7 @@ func BridgeTraffic(masks map[int64]int64, tr map[int64]int64) {
 	for i := 1; i < len(mins); i++ {
 		a, b := mins[i-1], mins[i]
 		gap := b - a - 1
-		if gap <= 0 || gap > TrafficBridgeMax {
+		if gap <= 0 || gap > maxGap {
 			continue
 		}
 		var n int64
@@ -194,7 +222,7 @@ func BridgeTraffic(masks map[int64]int64, tr map[int64]int64) {
 				n++
 			}
 		}
-		if n*100 >= gap*trafficShare {
+		if n*100 >= gap*share {
 			for m := a + 1; m < b; m++ {
 				masks[m/60] |= 1 << uint(m%60)
 			}
@@ -231,15 +259,16 @@ func TimeSpent(rows []store.SvcRow, services map[int64]store.Service, tact map[i
 		}
 		groups[k][r.Hour] |= r.Mask
 	}
+	tu := currentTuning()
 	for k, m := range groups {
-		if periodicMasks(m) {
+		if !tu.CountPolling && periodicMasks(m) {
 			// automatic polling: requests are kept, time is not
 			for h := range m {
 				m[h] = 0
 			}
 			continue
 		}
-		BridgeGaps(m, BridgeMinutes)
+		BridgeGaps(m, tu.BridgeMin)
 		BridgeTraffic(m, tact[k.user])
 	}
 	for _, r := range rows {
@@ -307,12 +336,13 @@ func Sites(rows []store.VisitRow, domains map[int64]store.Domain, services map[i
 		bridged[r.DomainID][r.Slot] |= r.Mask
 	}
 	periodic := map[int64]bool{}
+	tu := currentTuning()
 	for dom, m := range bridged {
-		if periodicMasks(m) {
+		if !tu.CountPolling && periodicMasks(m) {
 			periodic[dom] = true
 			continue
 		}
-		BridgeGaps(m, BridgeMinutes)
+		BridgeGaps(m, tu.BridgeMin)
 		BridgeTraffic(m, tr)
 	}
 	for _, r := range rows {

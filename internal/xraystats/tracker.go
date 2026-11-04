@@ -56,6 +56,8 @@ type Tracker struct {
 	updated time.Time
 	err     error
 
+	activeMin, heavyMin int64 // thresholds in bytes per minute (0 = default)
+
 	minute int64            // the minute being accumulated (unix minutes)
 	bytes  map[string]int64 // bytes moved so far in that minute
 	marks  map[string]map[int64]minuteMarks
@@ -67,13 +69,28 @@ func NewTracker(q Querier) *Tracker {
 		bytes: map[string]int64{}, marks: map[string]map[int64]minuteMarks{}}
 }
 
+// SetThresholds changes how much data within a minute makes it a minute of
+// real use and of sustained transfer. Zero keeps the default.
+func (t *Tracker) SetThresholds(active, heavy int64) {
+	t.mu.Lock()
+	t.activeMin, t.heavyMin = active, heavy
+	t.mu.Unlock()
+}
+
 // account adds one sample's transfer to the current minute and closes the
-// previous minute when a new one starts.
+// previous minute when a new one starts. The caller holds t.mu.
 func (t *Tracker) account(now time.Time, moved map[string]int64) {
+	activeMin, heavyMin := int64(ActiveMinBytes), int64(HeavyMinBytes)
+	if t.activeMin > 0 {
+		activeMin = t.activeMin
+	}
+	if t.heavyMin > 0 {
+		heavyMin = t.heavyMin
+	}
 	min := now.Unix() / 60
 	if t.minute != 0 && min != t.minute {
 		for email, b := range t.bytes {
-			if b >= ActiveMinBytes {
+			if b >= activeMin {
 				m := t.marks[email]
 				if m == nil {
 					m = map[int64]minuteMarks{}
@@ -82,7 +99,7 @@ func (t *Tracker) account(now time.Time, moved map[string]int64) {
 				bit := int64(1) << uint(t.minute%60)
 				mm := m[t.minute/60]
 				mm.active |= bit
-				if b >= HeavyMinBytes {
+				if b >= heavyMin {
 					mm.heavy |= bit
 				}
 				m[t.minute/60] = mm

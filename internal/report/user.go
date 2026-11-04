@@ -213,7 +213,7 @@ func (e *Env) User(ctx ctxT, userID int64, rg Range) (*UserReport, error) {
 		ipAddr[id] = ip.IP
 	}
 	// an address change on a mobile network is not a second device
-	runs = analytics.MergeHops(runs, SameNetwork(ipMap))
+	runs = analytics.MergeHops(runs, e.sameNetwork(ipMap))
 	r.Concurrency.Limit = u.LimitIP
 	r.Concurrency.Max = analytics.MaxConcurrent(runs)
 	for _, o := range analytics.Overlaps(runs, 2) {

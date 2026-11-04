@@ -14,6 +14,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"xrayscope/internal/analytics"
 	"xrayscope/internal/auth"
 	"xrayscope/internal/backup"
 	"xrayscope/internal/classify"
@@ -74,6 +75,8 @@ type App struct {
 	lastLineAt atomic.Int64
 	linesTotal atomic.Int64
 	onlineAPI  atomic.Int32
+
+	separateIPs atomic.Bool // settings: keep address changes as separate devices
 
 	alerts alertState
 
@@ -145,6 +148,9 @@ func New(cfg config.Config, version string, log *slog.Logger) (*App, error) {
 	}
 	// an address change on a mobile network is the same device
 	a.Live.SameNet = func(x, y string) bool {
+		if a.separateIPs.Load() {
+			return false
+		}
 		var asnX, asnY int
 		if a.Geo != nil {
 			_, asnX, _ = a.Geo.Lookup(x)
@@ -173,6 +179,11 @@ func New(cfg config.Config, version string, log *slog.Logger) (*App, error) {
 	a.Bot = telegram.New(cfg.Proxy)
 	apply := func(s settings.Settings) {
 		st.SetClassifier(classify.New(s.CustomRules))
+		ac := s.Accuracy
+		analytics.SetTuning(analytics.Tuning{BridgeMin: ac.BridgeMin, TrafficMax: ac.TrafficBridgeMax, TrafficShare: ac.TrafficShare, CountPolling: ac.CountPolling})
+		st.SetMinRequests(ac.MinRequests)
+		a.Speed.SetThresholds(int64(ac.ActiveKB)<<10, int64(ac.HeavyKB)<<10)
+		a.separateIPs.Store(ac.SeparateIPChanges)
 		if err := a.Bot.Configure(s.Telegram); err != nil {
 			log.Warn("telegram configuration", "err", err)
 		}
@@ -202,6 +213,8 @@ func (a *App) Env() *report.Env {
 		GapMin:    int64(s.SessionGapMin),
 		OnlineWin: time.Duration(s.OnlineWindowMin) * time.Minute,
 		Live:      a.Live,
+
+		SeparateIPChanges: s.Accuracy.SeparateIPChanges,
 	}
 }
 

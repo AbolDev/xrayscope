@@ -18,6 +18,9 @@ type Env struct {
 	GapMin    int64
 	OnlineWin time.Duration
 	Live      *live.Tracker
+	// SeparateIPChanges counts a device's new address after a network change
+	// as another device.
+	SeparateIPChanges bool
 }
 
 // Range is a half-open time range in unix seconds.

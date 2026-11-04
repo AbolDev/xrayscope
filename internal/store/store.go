@@ -46,6 +46,8 @@ type Store struct {
 
 	outboxOn     atomic.Bool
 	outboxPushes atomic.Int64
+
+	minReqs atomic.Int64 // see SetMinRequests
 }
 
 type svcKey struct{ category, name string }

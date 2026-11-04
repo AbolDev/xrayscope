@@ -127,6 +127,21 @@ func TestMergeMinutes(t *testing.T) {
 	}
 }
 
+func TestTuningTurnsBridgingOff(t *testing.T) {
+	defer SetTuning(DefaultTuning())
+	services := map[int64]store.Service{1: {ID: 1, Category: "video", Name: "YouTube"}}
+	rows := []store.SvcRow{{UserID: 1, ServiceID: 1, Hour: 10, Mask: 1<<0 | 1<<3, Reqs: 4}}
+	_, svcs := TimeSpent(rows, services, nil)
+	if svcs[0].Minutes != 4 {
+		t.Fatalf("default: %d minutes", svcs[0].Minutes)
+	}
+	SetTuning(Tuning{BridgeMin: 0, TrafficMax: 0, TrafficShare: 70})
+	_, svcs = TimeSpent(rows, services, nil)
+	if svcs[0].Minutes != 2 {
+		t.Fatalf("bridging off: %d minutes", svcs[0].Minutes)
+	}
+}
+
 func TestBridgeTraffic(t *testing.T) {
 	// requests at minutes 0 and 20 of one hour; the 19 minutes between have
 	// traffic in 15 of them (79 percent), so the pause counts

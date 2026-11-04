@@ -106,17 +106,23 @@ function healthPanel(st) {
   else if (c.sure) line('ok', t('hl.clock'), t('hl.clock_ok'));
   else line('na', t('hl.clock'), t('hl.clock_wait'));
 
-  // per inbound: sniffing and real client addresses
+  // per inbound: sniffing (TCP and QUIC) and real client addresses
   const ins = (hl.inbounds || []).filter((x) => x.requests >= 20);
+  const quicBad = (x) => x.quic >= 20 && pct(x.quic_ip, x.quic) > 50;
+  const quic = ins.reduce((a, x) => [a[0] + x.quic, a[1] + x.quic_ip], [0, 0]);
+  if (quic[0] >= 20) {
+    line(pct(quic[1], quic[0]) > 50 ? 'warn' : 'ok', t('hl.quic'), pct(quic[1], quic[0]) > 50 ? t('hl.quic_bad', { p: pct(quic[1], quic[0]) }) : t('hl.quic_ok'));
+  }
   const tbl = ins.length ? h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' },
-    h('thead', null, h('tr', null, [t('hl.inbound'), t('hl.requests'), t('hl.users'), t('hl.no_domain'), t('hl.cdn_src')].map((x, i) => h('th', { class: i === 1 || i === 2 ? 'num' : '' }, x)))),
+    h('thead', null, h('tr', null, [t('hl.inbound'), t('hl.requests'), t('hl.users'), t('hl.no_domain'), t('hl.quic_col'), t('hl.cdn_src')].map((x, i) => h('th', { class: i === 1 || i === 2 ? 'num' : '' }, x)))),
     h('tbody', null, ins.map((x) => {
-      const nd = pct(x.ip_dest, x.requests), cd = pct(x.cdn_src, x.requests);
+      const nd = pct(x.ip_dest, x.requests), cd = pct(x.cdn_src, x.requests), qd = pct(x.quic_ip, x.quic);
       return h('tr', null, h('td', { class: 'mono' }, x.tag || '-'), h('td', { class: 'num' }, num(x.requests)), h('td', { class: 'num' }, num(x.users)),
         h('td', { title: nd > 50 ? t('hl.no_domain_bad') : '' }, nd > 50 ? tag(nd + '%', 'bad') : nd + '%'),
+        h('td', { title: quicBad(x) ? t('hl.quic_bad', { p: qd }) : '' }, x.quic < 20 ? h('span', { class: 'faint' }, '-') : quicBad(x) ? tag(qd + '%', 'bad') : qd + '%'),
         h('td', { title: cd > 20 ? t('hl.cdn_bad') : '' }, cd > 20 ? tag(cd + '%', 'bad') : cd + '%'));
     })))) : h('div', { class: 'muted' }, t('hl.no_inbounds'));
-  const bad = ins.some((x) => pct(x.ip_dest, x.requests) > 50 || pct(x.cdn_src, x.requests) > 20);
+  const bad = ins.some((x) => pct(x.ip_dest, x.requests) > 50 || pct(x.cdn_src, x.requests) > 20 || quicBad(x));
   return panel(t('hl.title'), h('div', { class: 'stack' }, checks, tbl,
     bad ? h('div', { class: 'alert warn' }, t('hl.fix'), ' ', h('a', { href: '#/guide' }, t('nav.guide'))) : null), t('hl.hint'));
 }

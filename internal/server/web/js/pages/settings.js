@@ -85,6 +85,28 @@ export async function settingsPage(ctx) {
     h('div', { style: { borderTop: '1px solid var(--border)', paddingTop: '12px', marginTop: '4px' } },
       field(t('set.min_overlap'), numInput(al.min_overlap_min, (v) => { al.min_overlap_min = v; }, 1, 60), t('set.min_overlap_help'))));
 
+  // ---- accuracy: the thresholds behind time, presence and device figures
+  const ac = s.accuracy;
+  const DEF = { bridge_min: 4, traffic_bridge_max: 45, traffic_share: 70, active_kb: 30, heavy_kb: 1024, min_requests: 2, count_polling: false, separate_ip_changes: false };
+  const acBox = h('div');
+  const drawAcc = () => acBox.replaceChildren(
+    h('div', { class: 'cols c2' },
+      field(t('acc.bridge'), numInput(ac.bridge_min, (v) => { ac.bridge_min = v; }, 0, 15), t('acc.bridge_help')),
+      field(t('acc.traffic_max'), numInput(ac.traffic_bridge_max, (v) => { ac.traffic_bridge_max = v; }, 0, 180), t('acc.traffic_max_help')),
+      field(t('acc.traffic_share'), numInput(ac.traffic_share, (v) => { ac.traffic_share = v; }, 30, 100), t('acc.traffic_share_help')),
+      field(t('acc.min_requests'), numInput(ac.min_requests, (v) => { ac.min_requests = v; }, 1, 10), t('acc.min_requests_help')),
+      field(t('acc.active_kb'), numInput(ac.active_kb, (v) => { ac.active_kb = v; }, 1, 10240), t('acc.active_kb_help')),
+      field(t('acc.heavy_kb'), numInput(ac.heavy_kb, (v) => { ac.heavy_kb = v; }, 1, 102400), t('acc.heavy_kb_help'))),
+    h('div', { class: 'stack', style: { gap: '8px' } },
+      sw(t('acc.count_polling'), ac.count_polling, (v) => { ac.count_polling = v; }),
+      sw(t('acc.separate_ips'), ac.separate_ip_changes, (v) => { ac.separate_ip_changes = v; })));
+  drawAcc();
+  const accuracy = h('div', { class: 'card' }, h('h2', null, t('acc.title')),
+    h('p', { class: 'muted', style: { marginTop: 0 } }, t('acc.intro')), acBox,
+    h('div', { class: 'row', style: { marginTop: '12px' } },
+      h('button', { class: 'btn', onclick: () => { Object.assign(ac, DEF); drawAcc(); } }, icon('refresh'), t('acc.reset')),
+      h('span', { class: 'help muted' }, t('acc.note'))));
+
   // ---- custom rules
   const ruleBody = h('tbody');
   const drawRules = () => {
@@ -157,7 +179,7 @@ export async function settingsPage(ctx) {
       if (await save(s, token)) { toast(t('set.saved'), 'ok'); state.meta = await api.get('meta'); }
     } }, t('save')));
 
-  page.append(general, telegram, alerts, rulesCard, unCard, backups, account, saveBar);
+  page.append(general, telegram, alerts, accuracy, rulesCard, unCard, backups, account, saveBar);
   return page;
 }
 

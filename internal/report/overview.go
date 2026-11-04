@@ -352,7 +352,7 @@ func (e *Env) Users(ctx ctxT, rg Range) ([]UserRow, error) {
 	if err != nil {
 		return nil, err
 	}
-	sameNet := SameNetwork(ipInfo)
+	sameNet := e.sameNetwork(ipInfo)
 	sparkStart, sparkN := sparkBins(rg)
 	out := make([]UserRow, 0, len(users))
 	for _, u := range users {

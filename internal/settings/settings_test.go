@@ -29,6 +29,10 @@ func TestValidateRejects(t *testing.T) {
 		"api base":   func(s *Settings) { s.Telegram.APIBase = "not a url" },
 		"digest":     func(s *Settings) { s.Alerts.DailyDigest.Value = 30 },
 		"rule":       func(s *Settings) { s.CustomRules = []classify.Rule{{Domain: "x.com", Category: "bogus"}} },
+		"bridge":     func(s *Settings) { s.Accuracy.BridgeMin = 99 },
+		"share":      func(s *Settings) { s.Accuracy.TrafficShare = 5 },
+		"heavy":      func(s *Settings) { s.Accuracy.HeavyKB = s.Accuracy.ActiveKB - 1 },
+		"requests":   func(s *Settings) { s.Accuracy.MinRequests = 0 },
 	}
 	for name, mut := range cases {
 		s := Defaults()
@@ -68,6 +72,27 @@ func TestManagerPersistsAndNotifies(t *testing.T) {
 	bad.SessionGapMin = -1
 	if m.Set(bad) == nil || m.Get().SessionGapMin != 9 {
 		t.Fatal("invalid settings must not replace the current ones")
+	}
+}
+
+// Settings stored before the accuracy section existed get its defaults, and
+// zero values that are meaningful (pauses turned off) are kept.
+func TestAccuracyDefaults(t *testing.T) {
+	kv := memKV{kvKey: `{"language":"fa","session_gap_min":5,"online_window_min":3}`}
+	m, err := NewManager(kv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.Get().Accuracy != DefaultAccuracy() {
+		t.Fatalf("old settings: %+v", m.Get().Accuracy)
+	}
+	s := m.Get()
+	s.Accuracy.BridgeMin, s.Accuracy.TrafficBridgeMax = 0, 0
+	if err := m.Set(s); err != nil {
+		t.Fatal(err)
+	}
+	if a := m.Get().Accuracy; a.BridgeMin != 0 || a.TrafficBridgeMax != 0 {
+		t.Fatalf("turned-off pauses were reset: %+v", a)
 	}
 }
 

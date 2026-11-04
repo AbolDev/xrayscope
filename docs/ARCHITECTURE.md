@@ -65,6 +65,10 @@ The access log records only when a connection opens, so a video or a page being 
 
 The **Data quality** card in System shows, per inbound, the share of connections without a domain name (sniffing off) and of clients that are CDN edges (real address not passed through), whether the statistics and online APIs answer, and the log's time zone. The time zone is checked by comparing log timestamps with the moment lines are read while the collector keeps up; once the offset is stable for a few minutes, times are corrected automatically (remembered in `kv` as `log:shift`).
 
+The card also counts QUIC (UDP 443) connections without a site name per inbound; a high share means "quic" is missing from the sniffing `destOverride`, which hides much of YouTube, Instagram and Google.
+
+All thresholds above can be tuned under **Settings → Accuracy** (short pause, pause with traffic and its share, requests per minute, active and heavy minute in KB, counting polling, keeping address changes apart). Time and device figures are recalculated with the new values; the request and data thresholds apply to data collected afterwards. Nodes that push data measure traffic minutes with the default thresholds.
+
 Sites no rule knows are listed in Settings, where one click files them under a category.
 
 ## Sleep analysis

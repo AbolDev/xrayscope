@@ -25,6 +25,10 @@ type Inbound struct {
 	CDNSrc   int64  `json:"cdn_src"`   // client addresses that are CDN edges
 	Users    int    `json:"users"`     // distinct users
 	LastSeen int64  `json:"last_seen"` // unix seconds
+	// QUIC (UDP 443) connections, and those of them without a domain name:
+	// a high share means "quic" is missing from the sniffing destOverride.
+	Quic   int64 `json:"quic"`
+	QuicIP int64 `json:"quic_ip"`
 }
 
 type inbound struct {
@@ -65,8 +69,16 @@ func (m *Monitor) Observe(e parser.Entry, now time.Time) {
 		m.cur[tag] = in
 	}
 	in.Requests++
-	if _, err := netip.ParseAddr(e.Host); err == nil {
+	_, err := netip.ParseAddr(e.Host)
+	bare := err == nil
+	if bare {
 		in.IPDest++
+	}
+	if e.Network == "udp" && e.Port == 443 {
+		in.Quic++
+		if bare {
+			in.QuicIP++
+		}
 	}
 	if classify.CDN(e.SrcIP) != "" {
 		in.CDNSrc++
@@ -97,6 +109,8 @@ func (m *Monitor) Inbounds() []Inbound {
 			x.Requests += in.Requests
 			x.IPDest += in.IPDest
 			x.CDNSrc += in.CDNSrc
+			x.Quic += in.Quic
+			x.QuicIP += in.QuicIP
 			if in.LastSeen > x.LastSeen {
 				x.LastSeen = in.LastSeen
 			}

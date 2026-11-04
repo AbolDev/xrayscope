@@ -7,6 +7,14 @@ import (
 	"xrayscope/internal/store"
 )
 
+// sameNetwork is SameNetwork unless address changes are to be kept apart.
+func (e *Env) sameNetwork(ips map[int64]store.IP) func(a, b int64) bool {
+	if e.SeparateIPChanges {
+		return func(a, b int64) bool { return false }
+	}
+	return SameNetwork(ips)
+}
+
 // SameNetwork returns a test for "these two addresses belong to one
 // operator": the same autonomous system when the ASN is known, otherwise the
 // same /16 (IPv4) or /32 (IPv6) block.
