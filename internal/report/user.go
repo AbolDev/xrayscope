@@ -88,7 +88,7 @@ var favoriteCategories = map[string]bool{
 	"ai": true, "social": true, "video": true, "messaging": true, "music": true, "gaming": true,
 	"shopping": true, "news": true, "dev": true, "work": true, "education": true, "finance": true,
 	"travel": true, "food": true, "sports": true, "health": true, "books": true, "jobs": true,
-	"search": true, "email": true, "cloud": true, "tools": true,
+	"search": true, "email": true, "cloud": true, "tools": true, "adult": true,
 }
 
 // ErrNotFound is returned for unknown users.

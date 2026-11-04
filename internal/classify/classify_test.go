@@ -9,6 +9,8 @@ func TestClassify(t *testing.T) {
 		bg                            bool
 	}{
 		{"chatgpt.com", "chatgpt.com", "ai", "ChatGPT", false},
+		{"www.pornhub.com", "pornhub.com", "adult", "Pornhub", false},
+		{"ei.phncdn.com", "phncdn.com", "adult", "Pornhub", false},
 		{"cdn.oaistatic.com", "oaistatic.com", "ai", "ChatGPT", false},
 		{"gemini.google.com", "gemini.google.com", "ai", "Gemini", false},
 		{"www.google.com", "google.com", "search", "Google", false},

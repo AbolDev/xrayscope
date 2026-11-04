@@ -7,6 +7,22 @@ import (
 	"xrayscope/internal/store"
 )
 
+func TestBridgeGaps(t *testing.T) {
+	// minutes 0 and 3 of hour 10 (a gap of two), minute 58 of hour 10 and
+	// minute 1 of hour 11 (a gap of two across the hour), minute 30 alone
+	m := map[int64]int64{10: 1<<0 | 1<<3 | 1<<30 | 1<<58, 11: 1 << 1}
+	BridgeGaps(m, 4)
+	if got := PopCount(m[10]); got != 4+1+2 { // 0..3, 30, 58..59
+		t.Fatalf("hour 10 has %d minutes", got)
+	}
+	if got := PopCount(m[11]); got != 2 { // 0..1
+		t.Fatalf("hour 11 has %d minutes", got)
+	}
+	if m[10]&(1<<20) != 0 {
+		t.Fatal("a long pause must not be bridged")
+	}
+}
+
 var tehran = time.FixedZone("IRST", 3*3600+1800)
 
 func TestSessions(t *testing.T) {

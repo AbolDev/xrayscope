@@ -340,6 +340,25 @@ health|DrDr|drdr.ir
 health|MyFitnessPal|myfitnesspal.com
 health|Fitbit|fitbit.com
 
+# ---------------------------------------------------------------- Adult content
+adult|Pornhub|pornhub.com,phncdn.com,pornhubpremium.com,modelhub.com
+adult|XVideos|xvideos.com,xvideos-cdn.com,xvideos2.com,xvv1deos.com
+adult|XNXX|xnxx.com,xnxx-cdn.com,xnxx.tv
+adult|XHamster|xhamster.com,xhamster2.com,xhamster3.com,xhcdn.com,xhpingcdn.com,xhamsterlive.com
+adult|YouPorn|youporn.com,youpornru.com
+adult|RedTube|redtube.com
+adult|Tube8|tube8.com
+adult|SpankBang|spankbang.com,sb-cd.com
+adult|Eporner|eporner.com
+adult|Brazzers|brazzers.com
+adult|Chaturbate|chaturbate.com,highwebmedia.com
+adult|Stripchat|stripchat.com,strpst.com,stripcdn.com
+adult|OnlyFans|onlyfans.com,onlyfansapi.com
+adult|Fansly|fansly.com
+adult|Rule34|rule34.xxx,rule34.paheal.net
+adult|E-Hentai|e-hentai.org,exhentai.org,hentaifox.com,nhentai.net,hanime.tv,hentaihaven.xxx
+adult|Other adult sites|porn.com,pornone.com,beeg.com,txxx.com,hclips.com,tnaflix.com,motherless.com,thumbzilla.com,sunporno.com,porntrex.com,daftsex.com,fapello.com,camsoda.com,bongacams.com,livejasmin.com,cam4.com,myfreecams.com,erome.com,hqporner.com,pornpics.com,4tube.com,drtuber.com,nuvid.com,vporn.com,tubegalore.com,gotporn.com,naughtyamerica.com,realitykings.com,bangbros.com
+
 # ---------------------------------------------------------------- Books and reading
 books|Goodreads|goodreads.com
 books|Audible|audible.com

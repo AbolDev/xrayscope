@@ -124,6 +124,38 @@ type TimeStat struct {
 	Reqs     int64  `json:"reqs"`
 }
 
+// BridgeMinutes is how long a pause may be before time on a site stops
+// counting. The access log only records when a connection opens, so a video
+// or a page being read leaves silent minutes in between that still belong to
+// the visit.
+var BridgeMinutes = 4
+
+// BridgeGaps fills the quiet minutes between two active minutes when fewer
+// than gap of them lie in between. masks maps an absolute hour to its 60-bit
+// minute mask and is changed in place.
+func BridgeGaps(masks map[int64]int64, gap int) {
+	if gap <= 0 || len(masks) == 0 {
+		return
+	}
+	var mins []int64
+	hours := make([]int64, 0, len(masks))
+	for h := range masks {
+		hours = append(hours, h)
+	}
+	sort.Slice(hours, func(i, j int) bool { return hours[i] < hours[j] })
+	for _, h := range hours {
+		hourMinutes(h, masks[h], func(m int64) { mins = append(mins, m) })
+	}
+	for i := 1; i < len(mins); i++ {
+		a, b := mins[i-1], mins[i]
+		if b-a > 1 && b-a-1 <= int64(gap) {
+			for m := a + 1; m < b; m++ {
+				masks[m/60] |= 1 << uint(m%60)
+			}
+		}
+	}
+}
+
 // TimeSpent aggregates service time. Category totals use the union of
 // minutes across services so parallel use is not double counted. Per-user
 // results are summed when rows from several users are given.
@@ -141,13 +173,29 @@ func TimeSpent(rows []store.SvcRow, services map[int64]store.Service) (byCategor
 	svcMin := map[sk]int64{}
 	svcReqs := map[sk]int64{}
 	catReqs := map[string]int64{}
+	type uk struct{ user, svc int64 }
+	groups := map[uk]map[int64]int64{}
+	for _, r := range rows {
+		k := uk{r.UserID, r.ServiceID}
+		if groups[k] == nil {
+			groups[k] = map[int64]int64{}
+		}
+		groups[k][r.Hour] |= r.Mask
+	}
+	for _, m := range groups {
+		BridgeGaps(m, BridgeMinutes)
+	}
 	for _, r := range rows {
 		sv, ok := services[r.ServiceID]
 		if !ok {
 			continue
 		}
-		catMask[ck{r.UserID, sv.Category, r.Hour}] |= r.Mask
-		svcMin[sk{sv.Category, sv.Name}] += int64(PopCount(r.Mask))
+		// the first row of a (user, service, hour) carries the bridged minutes
+		k := uk{r.UserID, r.ServiceID}
+		mask := groups[k][r.Hour]
+		delete(groups[k], r.Hour)
+		catMask[ck{r.UserID, sv.Category, r.Hour}] |= mask
+		svcMin[sk{sv.Category, sv.Name}] += int64(PopCount(mask))
 		svcReqs[sk{sv.Category, sv.Name}] += r.Reqs
 		catReqs[sv.Category] += r.Reqs
 	}
@@ -181,6 +229,20 @@ type SiteStat struct {
 // hours*60 as an upper bound for minutes.
 func Sites(rows []store.VisitRow, domains map[int64]store.Domain, services map[int64]store.Service, from, to int64) []SiteStat {
 	acc := map[int64]*SiteStat{}
+	// bridge quiet minutes inside one visit, per site
+	bridged := map[int64]map[int64]int64{}
+	for _, r := range rows {
+		if r.Grain != 0 {
+			continue
+		}
+		if bridged[r.DomainID] == nil {
+			bridged[r.DomainID] = map[int64]int64{}
+		}
+		bridged[r.DomainID][r.Slot] |= r.Mask
+	}
+	for _, m := range bridged {
+		BridgeGaps(m, BridgeMinutes)
+	}
 	for _, r := range rows {
 		d, ok := domains[r.DomainID]
 		if !ok {
@@ -191,9 +253,18 @@ func Sites(rows []store.VisitRow, domains map[int64]store.Domain, services map[i
 			if r.Slot < from/60 || r.Slot >= (to+59)/60 {
 				continue
 			}
-			mins = int64(PopCount(r.Mask))
-			first = r.Slot*60 + int64(lowBit(r.Mask))
-			last = r.Slot*60 + int64(highBit(r.Mask))
+			mask, fresh := bridged[r.DomainID][r.Slot]
+			if !fresh {
+				// another user's row of this site and hour already carried the minutes
+				if s := acc[r.DomainID]; s != nil {
+					s.Reqs += r.Reqs
+				}
+				continue
+			}
+			delete(bridged[r.DomainID], r.Slot)
+			mins = int64(PopCount(mask))
+			first = r.Slot*60 + int64(lowBit(mask))
+			last = r.Slot*60 + int64(highBit(mask))
 		} else {
 			mins = int64(PopCount(r.Mask)) * 60
 			first = r.Slot*60 + int64(lowBit(r.Mask))*60

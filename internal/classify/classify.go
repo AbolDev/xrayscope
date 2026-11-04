@@ -47,6 +47,7 @@ var Categories = []Category{
 	{"books", "#a16207", false},
 	{"jobs", "#6366f1", false},
 	{"tools", "#84cc16", false},
+	{"adult", "#be123c", false},
 	{"vpn", "#78716c", false},
 	{"other", "#94a3b8", false},
 	{"ip", "#a1a1aa", false},
