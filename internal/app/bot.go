@@ -73,7 +73,7 @@ func (a *App) botHandler(ctx context.Context, cmd string, args []string) string 
 		state := a.msg("state.offline")
 		ips := 0
 		if r.Online != nil {
-			state, ips = a.msg("state.online"), len(r.Online.Conns)
+			state, ips = a.msg("state.online"), r.Online.Devices
 		}
 		last := "-"
 		if u.LastSeen > 0 {

@@ -21,9 +21,11 @@ import (
 
 	"xrayscope/internal/collect"
 	"xrayscope/internal/config"
+	"xrayscope/internal/health"
 	"xrayscope/internal/model"
 	"xrayscope/internal/netutil"
 	"xrayscope/internal/panel"
+	"xrayscope/internal/parser"
 	"xrayscope/internal/xraystats"
 )
 
@@ -50,6 +52,8 @@ type state struct {
 	Path    string              `json:"path"`
 	Pos     collect.Position    `json:"pos"`
 	Traffic map[string][2]int64 `json:"traffic"`
+	// LogShift is the detected time zone error of the log, in minutes.
+	LogShift int `json:"log_shift,omitempty"`
 }
 
 // New prepares an agent.
@@ -261,8 +265,16 @@ func (a *Agent) tail(ctx context.Context, path string) {
 	if a.state.Path == path {
 		start = a.state.Pos
 	}
+	shift := a.state.LogShift
 	a.mu.Unlock()
 	a.log.Info("following access log", "path", path, "offset", start.Offset)
+	fix := health.NewClockFixer(health.New(), shift, func(min int) {
+		a.mu.Lock()
+		a.state.LogShift = min
+		_ = a.saveState()
+		a.mu.Unlock()
+		a.log.Warn("access log time zone corrected", "shift_minutes", min)
+	})
 	var lastWarn time.Time
 	err := collect.Run(ctx, collect.PipelineConfig{
 		Tailer: collect.Tailer{
@@ -276,6 +288,7 @@ func (a *Agent) tail(ctx context.Context, path string) {
 		},
 		Sink:       sink{a: a, path: path},
 		FlushEvery: 10 * time.Second,
+		OnEntry:    func(e *parser.Entry) { fix.Fix(e, time.Now()) },
 	})
 	if err != nil && ctx.Err() == nil {
 		a.log.Error("access log collection stopped", "err", err)
@@ -445,7 +458,7 @@ func (a *Agent) runSpeed(ctx context.Context) {
 			lastActive = time.Now()
 			var recs []model.ActiveRec
 			for _, m := range tr.DrainActive() {
-				recs = append(recs, model.ActiveRec{U: m.Email, Hour: m.Hour, Mask: m.Mask})
+				recs = append(recs, model.ActiveRec{U: m.Email, Hour: m.Hour, Mask: m.Mask, Heavy: m.Heavy})
 			}
 			if len(recs) > 0 {
 				if err := a.spool(model.Batch{Active: recs}); err != nil {

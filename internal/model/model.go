@@ -43,6 +43,8 @@ type ActiveRec struct {
 	U    string `json:"u"`
 	Hour int64  `json:"h"` // unix hour
 	Mask int64  `json:"m"` // bit i = minute i of the hour
+	// Heavy is the subset of minutes with sustained transfer (a video).
+	Heavy int64 `json:"hm,omitempty"`
 }
 
 // PanelUser is an account as known by the VPN panel.

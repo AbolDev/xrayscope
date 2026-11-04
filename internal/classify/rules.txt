@@ -454,6 +454,8 @@ system|Google services|accounts.google.com,clients1.google.com,clients2.google.c
 system|Samsung services|samsungcloudsolution.com,samsungapps.com,samsungosp.com,samsungdm.com,samsung.com,samsungcloud.com
 system|Xiaomi services|miui.com,xiaomi.com,mi.com,xiaomi.net,mi-img.com,miwifi.com
 system|Huawei services|hicloud.com,dbankcloud.com,huawei.com,hihonor.com
+system|Smart TV services|lgtvsdp.com,lgsmartad.com,lgappstv.com,lgtvcommon.com,samsungacr.com,samsungotn.net,samsungcloudsolution.net,ravm.tv
+system|Phone vendor services|oneplus.net,realmemobile.com,transsion.com,shalltry.com,hihonorcloud.com,lenovomm.com
 system|Oppo/Vivo services|heytapmobi.com,oppomobile.com,vivo.com.cn,coloros.com
 
 # ---------------------------------------------------------------- CDN and infrastructure
@@ -483,6 +485,16 @@ hint|os|Samsung Android|2|samsungcloudsolution.com,samsungapps.com,samsungosp.co
 hint|os|Xiaomi Android|2|miui.com,xiaomi.net,mi-img.com,miwifi.com,push.api.xiaomi.com
 hint|os|Huawei|2|hicloud.com,dbankcloud.com,hihonor.com
 hint|os|Oppo/Vivo Android|2|heytapmobi.com,oppomobile.com,coloros.com,vivo.com.cn
+hint|os|OnePlus Android|2|oneplus.net,oneplus.com
+hint|os|Realme Android|2|realme.com,realmemobile.com
+hint|os|Tecno/Infinix Android|2|transsion.com,shalltry.com,tecno-mobile.com,infinixmobility.com
+hint|os|Honor Android|2|hihonorcloud.com,honor.com
+hint|os|Motorola Android|2|motorola.com,lenovomm.com
+hint|os|LG TV|3|lgtvsdp.com,lgsmartad.com,lgappstv.com,lgtvcommon.com
+hint|os|Samsung TV|3|samsungacr.com,samsungotn.net,samsungcloudsolution.net
+hint|os|Android TV|2|androidtvchannels-pa.googleapis.com,atv-ext.amazon.com
+hint|os|Roku TV|3|roku.com,ravm.tv
+hint|os|ChromeOS|3|chromeos-ca.gstatic.com,cros-omahaproxy.appspot.com
 
 # Browser
 hint|browser|Chrome|3|update.googleapis.com,optimizationguide-pa.googleapis.com,clientservices.googleapis.com,chromewebstore.google.com,chrome.google.com,edgedl.me.gvt1.com,gvt1.com,gvt2.com,clients2.google.com,safebrowsing.googleapis.com

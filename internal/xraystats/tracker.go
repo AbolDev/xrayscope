@@ -27,14 +27,20 @@ const (
 	// ActiveMinBytes is how much a user must transfer within one minute for
 	// that minute to count as real use rather than keep-alive chatter.
 	ActiveMinBytes = 30 << 10
+
+	// HeavyMinBytes marks a minute of sustained transfer, such as a video.
+	HeavyMinBytes = 1 << 20
 )
 
 // ActiveMark is the set of minutes of one hour with real traffic.
 type ActiveMark struct {
 	Email string
 	Hour  int64
-	Mask  int64
+	Mask  int64 // minutes with at least ActiveMinBytes
+	Heavy int64 // minutes with at least HeavyMinBytes
 }
+
+type minuteMarks struct{ active, heavy int64 }
 
 // Tracker samples a Querier and derives per-user speeds from the counter
 // deltas. It is safe for concurrent use.
@@ -52,13 +58,13 @@ type Tracker struct {
 
 	minute int64            // the minute being accumulated (unix minutes)
 	bytes  map[string]int64 // bytes moved so far in that minute
-	marks  map[string]map[int64]int64
+	marks  map[string]map[int64]minuteMarks
 }
 
 // NewTracker creates a tracker around a querier.
 func NewTracker(q Querier) *Tracker {
 	return &Tracker{q: q, rates: map[string]Rate{}, hist: map[string][]Point{}, quiet: map[string]int{},
-		bytes: map[string]int64{}, marks: map[string]map[int64]int64{}}
+		bytes: map[string]int64{}, marks: map[string]map[int64]minuteMarks{}}
 }
 
 // account adds one sample's transfer to the current minute and closes the
@@ -70,10 +76,16 @@ func (t *Tracker) account(now time.Time, moved map[string]int64) {
 			if b >= ActiveMinBytes {
 				m := t.marks[email]
 				if m == nil {
-					m = map[int64]int64{}
+					m = map[int64]minuteMarks{}
 					t.marks[email] = m
 				}
-				m[t.minute/60] |= 1 << uint(t.minute%60)
+				bit := int64(1) << uint(t.minute%60)
+				mm := m[t.minute/60]
+				mm.active |= bit
+				if b >= HeavyMinBytes {
+					mm.heavy |= bit
+				}
+				m[t.minute/60] = mm
 			}
 		}
 		t.bytes = map[string]int64{}
@@ -92,10 +104,10 @@ func (t *Tracker) DrainActive() []ActiveMark {
 	var out []ActiveMark
 	for email, hours := range t.marks {
 		for h, m := range hours {
-			out = append(out, ActiveMark{Email: email, Hour: h, Mask: m})
+			out = append(out, ActiveMark{Email: email, Hour: h, Mask: m.active, Heavy: m.heavy})
 		}
 	}
-	t.marks = map[string]map[int64]int64{}
+	t.marks = map[string]map[int64]minuteMarks{}
 	return out
 }
 

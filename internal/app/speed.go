@@ -148,7 +148,7 @@ func (a *App) runSpeed(ctx context.Context) {
 		}
 		recs := make([]model.ActiveRec, 0, len(marks))
 		for _, m := range marks {
-			recs = append(recs, model.ActiveRec{U: m.Email, Hour: m.Hour, Mask: m.Mask})
+			recs = append(recs, model.ActiveRec{U: m.Email, Hour: m.Hour, Mask: m.Mask, Heavy: m.Heavy})
 		}
 		if err := a.Store.ApplyActive(0, recs); err != nil {
 			a.Log.Warn("store traffic minutes", "err", err)

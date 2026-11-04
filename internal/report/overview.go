@@ -340,12 +340,25 @@ func (e *Env) Users(ctx ctxT, rg Range) ([]UserRow, error) {
 			online[o.UserID] = o
 		}
 	}
+	allIPs := map[int64]bool{}
+	for _, r := range rows {
+		allIPs[r.IPID] = true
+	}
+	ipIDs := make([]int64, 0, len(allIPs))
+	for id := range allIPs {
+		ipIDs = append(ipIDs, id)
+	}
+	ipInfo, err := e.Store.IPsByID(ctx, ipIDs)
+	if err != nil {
+		return nil, err
+	}
+	sameNet := SameNetwork(ipInfo)
 	sparkStart, sparkN := sparkBins(rg)
 	out := make([]UserRow, 0, len(users))
 	for _, u := range users {
 		r := UserRow{User: u, Up: up[u.ID], Down: down[u.ID]}
 		if o, ok := online[u.ID]; ok {
-			r.Online, r.OnlineIPs = true, len(o.Conns)
+			r.Online, r.OnlineIPs = true, o.Devices
 		}
 		r.Spark = make([]int, sparkN)
 		if rs := byUser[u.ID]; len(rs) > 0 {
@@ -363,7 +376,7 @@ func (e *Env) Users(ctx ctxT, rg Range) ([]UserRow, error) {
 				ipset[x.IPID] = true
 			}
 			r.IPs = len(ipset)
-			r.MaxIPs = analytics.MaxConcurrent(analytics.IPRuns(rs, e.GapMin))
+			r.MaxIPs = analytics.MaxConcurrent(analytics.MergeHops(analytics.IPRuns(rs, e.GapMin), sameNet))
 		}
 		if sr := svcBy[u.ID]; len(sr) > 0 {
 			cats, svcs := analytics.TimeSpent(sr, services, tactAll)

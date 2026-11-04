@@ -61,6 +61,47 @@ type Run struct {
 	IPID  int64
 	Start int64
 	End   int64
+	// Dev groups runs that are the same device: a phone whose address
+	// changed (mobile networks do this often) keeps one Dev. Zero means the
+	// run is its own device.
+	Dev int64
+}
+
+func (r Run) device() int64 {
+	if r.Dev != 0 {
+		return r.Dev
+	}
+	return r.IPID
+}
+
+// HopSlack is how much two addresses of one device may overlap when it
+// switches from one to the other, in minutes.
+const HopSlack = 2
+
+// MergeHops marks runs that continue another run on a new address of the
+// same network as the same device. sameNet reports whether two IP ids
+// belong to one operator (same ASN, or the same address block).
+func MergeHops(runs []Run, sameNet func(a, b int64) bool) []Run {
+	out := append([]Run(nil), runs...)
+	sort.Slice(out, func(i, j int) bool { return out[i].Start < out[j].Start })
+	for i := range out {
+		b := &out[i]
+		for j := i - 1; j >= 0; j-- {
+			a := out[j]
+			if b.Start-a.Start > 7*24*60 {
+				break // runs are sorted by start; nothing older can still be open
+			}
+			if a.IPID == b.IPID {
+				continue
+			}
+			// b takes over from a: it starts as a ends and outlives it
+			if b.Start >= a.End-HopSlack && b.Start <= a.End+HopSlack && b.End > a.End && sameNet(a.IPID, b.IPID) {
+				b.Dev = a.device()
+				break
+			}
+		}
+	}
+	return out
 }
 
 // IPRuns merges the active minutes of each IP into runs separated by more
@@ -88,11 +129,12 @@ func Overlaps(runs []Run, minLen int64) []Overlap {
 	type ev struct {
 		t     int64
 		delta int
+		dev   int64
 		ip    int64
 	}
 	evs := make([]ev, 0, len(runs)*2)
 	for _, r := range runs {
-		evs = append(evs, ev{r.Start, +1, r.IPID}, ev{r.End + 1, -1, r.IPID})
+		evs = append(evs, ev{r.Start, +1, r.device(), r.IPID}, ev{r.End + 1, -1, r.device(), r.IPID})
 	}
 	sort.Slice(evs, func(i, j int) bool {
 		if evs[i].t != evs[j].t {
@@ -101,7 +143,8 @@ func Overlaps(runs []Run, minLen int64) []Overlap {
 		return evs[i].delta < evs[j].delta // ends before starts
 	})
 
-	active := map[int64]int{}
+	active := map[int64]int{}   // device -> open runs
+	activeIP := map[int64]int{} // ip -> open runs
 	var out []Overlap
 	var cur *Overlap
 	seen := map[int64]bool{}
@@ -122,9 +165,13 @@ func Overlaps(runs []Run, minLen int64) []Overlap {
 	for i := 0; i < len(evs); {
 		t := evs[i].t
 		for ; i < len(evs) && evs[i].t == t; i++ {
-			active[evs[i].ip] += evs[i].delta
-			if active[evs[i].ip] == 0 {
-				delete(active, evs[i].ip)
+			active[evs[i].dev] += evs[i].delta
+			if active[evs[i].dev] == 0 {
+				delete(active, evs[i].dev)
+			}
+			activeIP[evs[i].ip] += evs[i].delta
+			if activeIP[evs[i].ip] == 0 {
+				delete(activeIP, evs[i].ip)
 			}
 		}
 		if i >= len(evs) {
@@ -140,7 +187,7 @@ func Overlaps(runs []Run, minLen int64) []Overlap {
 			if len(active) > cur.Peak {
 				cur.Peak = len(active)
 			}
-			for ip := range active {
+			for ip := range activeIP {
 				seen[ip] = true
 			}
 		} else {

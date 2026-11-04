@@ -12,3 +12,9 @@ var schemaV3 = []string{
 		PRIMARY KEY (hour, user_id, node_id)
 	) WITHOUT ROWID`,
 }
+
+// schemaV4 adds the minutes of sustained transfer (a video, a download), the
+// sign of someone watching rather than a phone idling.
+var schemaV4 = []string{
+	`ALTER TABLE tact ADD COLUMN hmask INTEGER NOT NULL DEFAULT 0`,
+}

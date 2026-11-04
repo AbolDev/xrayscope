@@ -184,7 +184,7 @@ func (a *App) evaluateAlerts(ctx context.Context) error {
 			if limit <= 0 {
 				limit = u.LimitIP
 			}
-			if limit <= 0 || len(o.Conns) <= limit {
+			if limit <= 0 || o.Devices <= limit {
 				continue
 			}
 			seen[o.UserID] = true
@@ -200,10 +200,12 @@ func (a *App) evaluateAlerts(ctx context.Context) error {
 			}
 			var ips []string
 			for _, c := range o.Conns {
-				ips = append(ips, "<code>"+telegram.Escape(c.IP)+"</code>")
+				if !c.Replaced {
+					ips = append(ips, "<code>"+telegram.Escape(c.IP)+"</code>")
+				}
 			}
 			a.notify(ctx, "max_ips", o.UserID, 0, fmt.Sprintf("maxips:%d", o.UserID), minutes(al.MaxIPs.Cooldown),
-				a.msg("alert.max_ips", telegram.Escape(o.Email), len(o.Conns), limit, strings.Join(ips, "\n")))
+				a.msg("alert.max_ips", telegram.Escape(o.Email), o.Devices, limit, strings.Join(ips, "\n")))
 		}
 		a.alerts.mu.Lock()
 		for id := range a.alerts.ipSince {

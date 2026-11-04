@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -19,9 +20,11 @@ import (
 	"xrayscope/internal/collect"
 	"xrayscope/internal/config"
 	"xrayscope/internal/geo"
+	"xrayscope/internal/health"
 	"xrayscope/internal/live"
 	"xrayscope/internal/model"
 	"xrayscope/internal/panel"
+	"xrayscope/internal/parser"
 	"xrayscope/internal/report"
 	"xrayscope/internal/settings"
 	"xrayscope/internal/store"
@@ -70,6 +73,7 @@ type App struct {
 
 	lastLineAt atomic.Int64
 	linesTotal atomic.Int64
+	onlineAPI  atomic.Int32
 
 	alerts alertState
 
@@ -77,6 +81,11 @@ type App struct {
 	Speed     *xraystats.Tracker
 	SpeedSrc  *xraystats.Source
 	SpeedBook *SpeedBook
+
+	// Health watches the log for configuration problems; ClockFix corrects
+	// a log written in another time zone.
+	Health   *health.Monitor
+	ClockFix *health.ClockFixer
 
 	// PullInterval overrides how often pull nodes are collected (tests).
 	PullInterval time.Duration
@@ -134,6 +143,15 @@ func New(cfg config.Config, version string, log *slog.Logger) (*App, error) {
 	if a.Geo != nil {
 		st.SetGeo(a.Geo.Lookup)
 	}
+	// an address change on a mobile network is the same device
+	a.Live.SameNet = func(x, y string) bool {
+		var asnX, asnY int
+		if a.Geo != nil {
+			_, asnX, _ = a.Geo.Lookup(x)
+			_, asnY, _ = a.Geo.Lookup(y)
+		}
+		return report.SameNetworkAddr(x, asnX, y, asnY)
+	}
 	if a.Panel, err = panel.New(cfg.Panel.Type, cfg.Panel.DBPath); err != nil {
 		st.Close()
 		return nil, err
@@ -142,6 +160,15 @@ func New(cfg config.Config, version string, log *slog.Logger) (*App, error) {
 	a.SpeedSrc = &xraystats.Source{Override: cfg.XrayAPI, Find: a.apiFinder}
 	a.Speed = xraystats.NewTracker(a.SpeedSrc)
 	a.SpeedBook = NewSpeedBook()
+	a.Health = health.New()
+	shift := 0
+	if v, ok, _ := st.KV("log:shift"); ok {
+		shift, _ = strconv.Atoi(v)
+	}
+	a.ClockFix = health.NewClockFixer(a.Health, shift, func(min int) {
+		_ = st.SetKV("log:shift", strconv.Itoa(min))
+		log.Warn("access log time zone corrected", "shift_minutes", min)
+	})
 
 	a.Bot = telegram.New(cfg.Proxy)
 	apply := func(s settings.Settings) {
@@ -364,7 +391,8 @@ func (a *App) tail(ctx context.Context, path string) error {
 				}
 			},
 		},
-		Sink: localSink{a: a, path: path},
+		Sink:    localSink{a: a, path: path},
+		OnEntry: func(e *parser.Entry) { a.ClockFix.Fix(e, time.Now()) },
 	})
 }
 

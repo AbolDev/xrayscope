@@ -45,6 +45,7 @@ export async function systemPage(ctx) {
     page.append(panel(t('sys.data_span'), h('div', null, fmtDate(st.db.first_hour * 3600) + '  -  ' + fmtDate(st.db.last_hour * 3600 + 3599))));
   }
 
+  page.append(healthPanel(st));
   page.append(updatePanel(st.version));
 
   // backups
@@ -84,6 +85,46 @@ export async function systemPage(ctx) {
   const bp = panel(t('bk.title'), h('div', null, bar, pending, list), t('bk.count', { n: num(bk.backups.length) }), true);
   page.append(bp);
   return page;
+}
+
+// healthPanel shows the settings that decide how accurate the analysis is.
+function healthPanel(st) {
+  const hl = st.health || {};
+  const pct = (a, b) => (b > 0 ? Math.round((a / b) * 100) : 0);
+  const checks = h('div', { class: 'stack', style: { gap: '8px' } });
+  const line = (tone, title, text) => checks.append(h('div', { class: 'row', style: { alignItems: 'flex-start', flexWrap: 'nowrap' } },
+    tag(t('hl.' + tone), tone === 'ok' ? 'ok' : tone === 'bad' ? 'bad' : 'warn'), h('div', null, h('b', { style: { fontWeight: 500 } }, title), h('div', { class: 'muted small' }, text))));
+
+  // the statistics API (speed, traffic minutes) and the online list
+  line(st.speed.ok ? 'ok' : 'warn', t('hl.stats'), st.speed.ok ? t('hl.stats_ok') : t('hl.stats_off'));
+  const on = hl.online_api || 'unknown';
+  line(on === 'ok' ? 'ok' : on === 'off' ? 'warn' : 'na', t('hl.online'), t('hl.online_' + on));
+
+  // the log's time zone
+  const c = hl.clock || {};
+  if (hl.clock_fix || (c.sure && c.offset_min)) line('warn', t('hl.clock'), t('hl.clock_fixed', { h: offset(hl.clock_fix || c.offset_min) }));
+  else if (c.sure) line('ok', t('hl.clock'), t('hl.clock_ok'));
+  else line('na', t('hl.clock'), t('hl.clock_wait'));
+
+  // per inbound: sniffing and real client addresses
+  const ins = (hl.inbounds || []).filter((x) => x.requests >= 20);
+  const tbl = ins.length ? h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' },
+    h('thead', null, h('tr', null, [t('hl.inbound'), t('hl.requests'), t('hl.users'), t('hl.no_domain'), t('hl.cdn_src')].map((x, i) => h('th', { class: i === 1 || i === 2 ? 'num' : '' }, x)))),
+    h('tbody', null, ins.map((x) => {
+      const nd = pct(x.ip_dest, x.requests), cd = pct(x.cdn_src, x.requests);
+      return h('tr', null, h('td', { class: 'mono' }, x.tag || '-'), h('td', { class: 'num' }, num(x.requests)), h('td', { class: 'num' }, num(x.users)),
+        h('td', { title: nd > 50 ? t('hl.no_domain_bad') : '' }, nd > 50 ? tag(nd + '%', 'bad') : nd + '%'),
+        h('td', { title: cd > 20 ? t('hl.cdn_bad') : '' }, cd > 20 ? tag(cd + '%', 'bad') : cd + '%'));
+    })))) : h('div', { class: 'muted' }, t('hl.no_inbounds'));
+  const bad = ins.some((x) => pct(x.ip_dest, x.requests) > 50 || pct(x.cdn_src, x.requests) > 20);
+  return panel(t('hl.title'), h('div', { class: 'stack' }, checks, tbl,
+    bad ? h('div', { class: 'alert warn' }, t('hl.fix'), ' ', h('a', { href: '#/guide' }, t('nav.guide'))) : null), t('hl.hint'));
+}
+
+function offset(min) {
+  const s = min < 0 ? '-' : '+';
+  const a = Math.abs(min);
+  return s + Math.floor(a / 60) + ':' + String(a % 60).padStart(2, '0');
 }
 
 function updatePanel(version) {

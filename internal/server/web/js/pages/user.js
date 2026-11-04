@@ -169,13 +169,14 @@ function summary(r) {
 
 function siteTable(list) {
   return h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' },
-    h('thead', null, h('tr', null, ['col.site', 'col.category', 'col.service', 'col.requests', 'col.active', 'col.first', 'col.last'].map((k, i) => h('th', { class: i >= 3 && i <= 4 ? 'num' : '' }, t(k))))),
+    h('thead', null, h('tr', null, ['col.site', 'col.category', 'col.service', 'col.requests', 'col.active', 'col.data', 'col.first', 'col.last'].map((k, i) => h('th', { class: i >= 3 && i <= 5 ? 'num' : '', title: k === 'col.data' ? t('col.data_hint') : '' }, t(k))))),
     h('tbody', null, list.map((s) => h('tr', null,
-      h('td', { class: 'mono' }, s.domain),
+      h('td', { class: 'mono' }, s.domain, s.auto ? h('span', null, ' ', tag(t('site.auto'), '', t('site.auto_hint'))) : null),
       h('td', null, catName(s.category)),
       h('td', null, s.service || h('span', { class: 'faint' }, '-')),
       h('td', { class: 'num' }, num(s.reqs)),
-      h('td', { class: 'num' }, dur(s.minutes)),
+      h('td', { class: 'num' }, s.auto ? h('span', { class: 'faint' }, '-') : dur(s.minutes)),
+      h('td', { class: 'num muted' }, s.bytes > 0 ? '~' + bytes(s.bytes) : '-'),
       h('td', { class: 'muted' }, fmtDateTime(s.first * 60)),
       h('td', { class: 'muted' }, fmtDateTime(s.last * 60)))))));
 }

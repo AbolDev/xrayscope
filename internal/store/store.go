@@ -18,7 +18,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-const schemaVersion = 3
+const schemaVersion = 4
 
 // SchemaVersion is the database schema this build reads and writes.
 const SchemaVersion = schemaVersion
@@ -136,37 +136,30 @@ func (s *Store) migrate() error {
 			return err
 		}
 	}
-	if cur < 2 {
-		tx, err := s.w.Begin()
-		if err != nil {
-			return err
+	// later versions: each a list of statements applied in one transaction
+	for v, steps := range [][]string{2: schemaV2, 3: schemaV3, 4: schemaV4} {
+		if v <= cur || steps == nil {
+			continue
 		}
-		defer tx.Rollback()
-		for _, q := range schemaV2 {
-			if _, err := tx.Exec(q); err != nil {
-				return fmt.Errorf("%s: %w", q, err)
-			}
-		}
-		if err := tx.Commit(); err != nil {
-			return err
-		}
-	}
-	if cur < 3 {
-		tx, err := s.w.Begin()
-		if err != nil {
-			return err
-		}
-		defer tx.Rollback()
-		for _, q := range schemaV3 {
-			if _, err := tx.Exec(q); err != nil {
-				return fmt.Errorf("%s: %w", q, err)
-			}
-		}
-		if err := tx.Commit(); err != nil {
+		if err := s.migrateStep(steps); err != nil {
 			return err
 		}
 	}
 	return s.SetKV("schema", strconv.Itoa(schemaVersion))
+}
+
+func (s *Store) migrateStep(steps []string) error {
+	tx, err := s.w.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	for _, q := range steps {
+		if _, err := tx.Exec(q); err != nil {
+			return fmt.Errorf("%s: %w", q, err)
+		}
+	}
+	return tx.Commit()
 }
 
 // KV reads a key from the key/value table.

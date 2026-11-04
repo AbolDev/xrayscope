@@ -36,7 +36,7 @@ func (s *Server) liveJSON(r *http.Request) ([]byte, error) {
 		parts := make([]string, 0, len(online))
 		for _, o := range online {
 			ips += len(o.Conns)
-			parts = append(parts, fmt.Sprintf("%d:%d", o.UserID, len(o.Conns)))
+			parts = append(parts, fmt.Sprintf("%d:%d:%d", o.UserID, len(o.Conns), o.Devices))
 		}
 		sort.Strings(parts)
 		snap.Online = map[string]int{"users": len(online), "ips": ips}

@@ -24,8 +24,8 @@ func (s *Store) ApplyActive(nodeID int64, recs []model.ActiveRec) error {
 			s.resetCaches()
 		}
 	}()
-	st, err := tx.Prepare(`INSERT INTO tact(hour,user_id,node_id,mask) VALUES(?,?,?,?)
-		ON CONFLICT(hour,user_id,node_id) DO UPDATE SET mask=mask|excluded.mask`)
+	st, err := tx.Prepare(`INSERT INTO tact(hour,user_id,node_id,mask,hmask) VALUES(?,?,?,?,?)
+		ON CONFLICT(hour,user_id,node_id) DO UPDATE SET mask=mask|excluded.mask, hmask=hmask|excluded.hmask`)
 	if err != nil {
 		return err
 	}
@@ -38,7 +38,7 @@ func (s *Store) ApplyActive(nodeID int64, recs []model.ActiveRec) error {
 		if err != nil {
 			return err
 		}
-		if _, err := st.Exec(r.Hour, uid, nodeID, r.Mask); err != nil {
+		if _, err := st.Exec(r.Hour, uid, nodeID, r.Mask, r.Heavy&r.Mask); err != nil {
 			return err
 		}
 	}
@@ -52,7 +52,16 @@ func (s *Store) ApplyActive(nodeID int64, recs []model.ActiveRec) error {
 // TAct returns, per user and hour, the minutes with real traffic (all nodes
 // combined). userID 0 means every user.
 func (s *Store) TAct(ctx context.Context, userID, fromHour, toHour int64) (map[int64]map[int64]int64, error) {
-	q := `SELECT user_id, hour, mask FROM tact WHERE hour>=? AND hour<?`
+	return s.tact(ctx, "mask", userID, fromHour, toHour)
+}
+
+// THeavy is like TAct for the minutes of sustained transfer.
+func (s *Store) THeavy(ctx context.Context, userID, fromHour, toHour int64) (map[int64]map[int64]int64, error) {
+	return s.tact(ctx, "hmask", userID, fromHour, toHour)
+}
+
+func (s *Store) tact(ctx context.Context, col string, userID, fromHour, toHour int64) (map[int64]map[int64]int64, error) {
+	q := `SELECT user_id, hour, ` + col + ` FROM tact WHERE hour>=? AND hour<? AND ` + col + `<>0`
 	args := []any{fromHour, toHour}
 	if userID > 0 {
 		q += ` AND user_id=?`

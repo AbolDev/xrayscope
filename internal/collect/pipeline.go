@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"xrayscope/internal/model"
+	"xrayscope/internal/parser"
 )
 
 // Sink receives drained records together with the log position that is
@@ -20,6 +21,9 @@ type PipelineConfig struct {
 	Sink       Sink
 	FlushEvery time.Duration // default 5s
 	MaxKeys    int           // flush early above this many keys (default 50000)
+	// OnEntry, when set, sees (and may adjust) every entry before it is
+	// counted. The entry's strings point into a reusable buffer.
+	OnEntry func(e *parser.Entry)
 }
 
 // Run tails the log and flushes aggregates to the sink until ctx ends.
@@ -38,6 +42,12 @@ func Run(ctx context.Context, cfg PipelineConfig) error {
 
 	t := cfg.Tailer
 	t.Handle = agg.Add
+	if cfg.OnEntry != nil {
+		t.Handle = func(e parser.Entry) {
+			cfg.OnEntry(&e)
+			agg.Add(e)
+		}
+	}
 	t.Commit = func(pos Position, n int64) error {
 		lines += n
 		if n > 0 {

@@ -166,8 +166,14 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		"nodes":            ns,
 		"backups":          map[string]any{"count": len(list), "last": last, "pending_restore": backup.HasPending(a.Cfg.DataDir)},
 		"speed":            speedState(a),
-		"telegram":         a.Bot.Enabled(),
-		"geo":              a.Geo != nil,
+		"health": map[string]any{
+			"inbounds":   a.Health.Inbounds(),
+			"clock":      a.Health.Clock(),
+			"clock_fix":  a.ClockFix.Shift(),
+			"online_api": a.OnlineAPIState(),
+		},
+		"telegram": a.Bot.Enabled(),
+		"geo":      a.Geo != nil,
 	})
 }
 
@@ -452,12 +458,14 @@ func (s *Server) handleOnline(w http.ResponseWriter, r *http.Request) {
 		Country  string `json:"country"`
 		Org      string `json:"org"`
 		CDN      string `json:"cdn,omitempty"`
+		Replaced bool   `json:"replaced,omitempty"`
 	}
 	type row struct {
 		UserID   int64  `json:"user_id"`
 		Email    string `json:"email"`
 		LastSeen int64  `json:"last_seen"`
 		LimitIP  int    `json:"limit_ip"`
+		Devices  int    `json:"devices"`
 		Conns    []conn `json:"conns"`
 	}
 	users, err := s.app.Store.Users(r.Context())
@@ -471,9 +479,9 @@ func (s *Server) handleOnline(w http.ResponseWriter, r *http.Request) {
 	}
 	out := make([]row, 0, len(online))
 	for _, o := range online {
-		x := row{UserID: o.UserID, Email: o.Email, LastSeen: o.LastSeen, LimitIP: limit[o.UserID]}
+		x := row{UserID: o.UserID, Email: o.Email, LastSeen: o.LastSeen, LimitIP: limit[o.UserID], Devices: o.Devices}
 		for _, c := range o.Conns {
-			cc := conn{IP: c.IP, LastSeen: c.LastSeen, CDN: classify.CDN(c.IP)}
+			cc := conn{IP: c.IP, LastSeen: c.LastSeen, CDN: classify.CDN(c.IP), Replaced: c.Replaced}
 			if ip, err := s.app.Store.IPByAddr(r.Context(), c.IP); err == nil {
 				cc.Country, cc.Org = ip.Country, ip.Org
 			}

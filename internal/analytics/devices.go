@@ -33,6 +33,13 @@ func osFamily(value string) (family, variant string) {
 	case "Apple":
 		return "Apple", ""
 	}
+	// "<Vendor> Android" and "<Vendor> TV" name a vendor of a family
+	if v, ok := strings.CutSuffix(value, " Android"); ok {
+		return "Android", v
+	}
+	if v, ok := strings.CutSuffix(value, " TV"); ok {
+		return "Smart TV", v
+	}
 	return value, ""
 }
 

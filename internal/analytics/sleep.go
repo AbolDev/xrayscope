@@ -142,6 +142,30 @@ func AnalyzeSleep(pres, inter []int64, fromDay, toDay int64, loc *time.Location,
 	return sum
 }
 
+// StreamAwake returns the minutes of sustained transfer that were started by
+// the user: a stretch of heavy minutes (gaps of up to two minutes allowed)
+// counts when a video, music, social or game service was opened shortly
+// before or during it. Someone watching a film in bed is awake although the
+// player makes no new connections; a phone installing updates at night is not.
+// heavy and media are sorted unique unix minutes.
+func StreamAwake(heavy, media []int64) []int64 {
+	var out []int64
+	for i := 0; i < len(heavy); {
+		j := i
+		for j+1 < len(heavy) && heavy[j+1]-heavy[j] <= 3 {
+			j++
+		}
+		start, end := heavy[i], heavy[j]
+		if len(between(media, start-10, end+1)) > 0 {
+			for m := start; m <= end; m++ {
+				out = append(out, m)
+			}
+		}
+		i = j + 1
+	}
+	return out
+}
+
 // localNoon returns the unix minute of 12:00 local time on a day index.
 func localNoon(loc *time.Location, day int64) int64 {
 	t := time.Unix(day*86400, 0).UTC()

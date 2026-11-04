@@ -13,14 +13,14 @@ export async function onlinePage(ctx) {
   }
   const speedCells = new Map();
   const rows = list.map((u) => {
-    const over = u.limit_ip > 0 && u.conns.length > u.limit_ip;
+    const over = u.limit_ip > 0 && u.devices > u.limit_ip;
     const down = h('span', { class: 'mono' }, '-');
     const up = h('span', { class: 'mono faint' }, '');
     speedCells.set(u.email, { down, up });
     return h('div', { class: 'live-row' + (over ? ' over' : '') },
       h('div', null, h('span', { class: 'row', style: { gap: '8px', flexWrap: 'nowrap' } }, h('span', { class: 'dot live' }), h('a', { href: '#/users/' + u.user_id, style: { fontWeight: 500 } }, u.email)),
-        h('div', { class: 'muted small' }, t('n_ips', { n: num(u.conns.length) }) + (u.limit_ip ? ' ' + t('of') + ' ' + num(u.limit_ip) : ''))),
-      h('div', { class: 'ips' }, u.conns.map((c) => h('div', null,
+        h('div', { class: 'muted small' }, t('n_ips', { n: num(u.devices) }) + (u.limit_ip ? ' ' + t('of') + ' ' + num(u.limit_ip) : ''))),
+      h('div', { class: 'ips' }, u.conns.map((c) => h('div', c.replaced ? { class: 'faint', title: t('ip.replaced') } : null,
         h('a', { class: 'mono', href: '#/ips?ip=' + encodeURIComponent(c.ip) }, c.ip),
         c.cdn ? tag(c.cdn, 'warn', t('cdn.hint')) : null,
         c.country ? h('span', null, (flag(c.country) + ' ' + c.country).trim()) : null,
@@ -31,7 +31,7 @@ export async function onlinePage(ctx) {
   page.append(panel(null, h('div', null, rows), null, true));
   page.querySelector('.panel > .pb').style.padding = '0';
 
-  const sig0 = list.map((u) => u.user_id + ':' + u.conns.length).sort().join(',');
+  const sig0 = list.map((u) => u.user_id + ':' + u.conns.length + ':' + u.devices).sort().join(',');
   const show = (sp) => {
     const by = new Map(sp.users.map((x) => [x.email, x]));
     for (const [email, cell] of speedCells) {

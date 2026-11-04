@@ -232,6 +232,13 @@ func TimeSpent(rows []store.SvcRow, services map[int64]store.Service, tact map[i
 		groups[k][r.Hour] |= r.Mask
 	}
 	for k, m := range groups {
+		if periodicMasks(m) {
+			// automatic polling: requests are kept, time is not
+			for h := range m {
+				m[h] = 0
+			}
+			continue
+		}
 		BridgeGaps(m, BridgeMinutes)
 		BridgeTraffic(m, tact[k.user])
 	}
@@ -273,6 +280,12 @@ type SiteStat struct {
 	Reqs     int64  `json:"reqs"`
 	First    int64  `json:"first"` // unix minute
 	Last     int64  `json:"last"`
+	// Auto marks a site contacted at a machine-regular rhythm (an app
+	// polling in the background); its minutes are not counted.
+	Auto bool `json:"auto,omitempty"`
+	// Bytes is the estimated data moved for this site: each stretch of the
+	// user's measured traffic shared among the sites active in it.
+	Bytes int64 `json:"bytes"`
 }
 
 // Sites aggregates visit rows per site. Daily (compacted) rows contribute
@@ -293,7 +306,12 @@ func Sites(rows []store.VisitRow, domains map[int64]store.Domain, services map[i
 		}
 		bridged[r.DomainID][r.Slot] |= r.Mask
 	}
-	for _, m := range bridged {
+	periodic := map[int64]bool{}
+	for dom, m := range bridged {
+		if periodicMasks(m) {
+			periodic[dom] = true
+			continue
+		}
 		BridgeGaps(m, BridgeMinutes)
 		BridgeTraffic(m, tr)
 	}
@@ -319,6 +337,9 @@ func Sites(rows []store.VisitRow, domains map[int64]store.Domain, services map[i
 			mins = int64(PopCount(mask))
 			first = r.Slot*60 + int64(lowBit(mask))
 			last = r.Slot*60 + int64(highBit(mask))
+			if periodic[r.DomainID] {
+				mins = 0 // automatic polling is not time spent
+			}
 		} else {
 			mins = int64(PopCount(r.Mask)) * 60
 			first = r.Slot*60 + int64(lowBit(r.Mask))*60
@@ -327,7 +348,7 @@ func Sites(rows []store.VisitRow, domains map[int64]store.Domain, services map[i
 		s := acc[r.DomainID]
 		if s == nil {
 			sv := services[d.ServiceID]
-			s = &SiteStat{Domain: d.Name, Category: d.Category, Service: sv.Name, First: first, Last: last}
+			s = &SiteStat{Domain: d.Name, Category: d.Category, Service: sv.Name, First: first, Last: last, Auto: periodic[r.DomainID]}
 			acc[r.DomainID] = s
 		}
 		s.Minutes += mins

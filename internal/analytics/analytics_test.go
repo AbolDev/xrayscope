@@ -7,6 +7,110 @@ import (
 	"xrayscope/internal/store"
 )
 
+func TestOSFamilyVendors(t *testing.T) {
+	for in, want := range map[string][2]string{
+		"LG TV": {"Smart TV", "LG"}, "OnePlus Android": {"Android", "OnePlus"},
+		"Samsung Android": {"Android", "Samsung"}, "Windows": {"Windows", ""}, "ChromeOS": {"ChromeOS", ""},
+	} {
+		if f, v := osFamily(in); f != want[0] || v != want[1] {
+			t.Errorf("%s -> %s/%s", in, f, v)
+		}
+	}
+}
+
+func TestStreamAwake(t *testing.T) {
+	// a film from 100 to 140 (YouTube opened at 98); an update download from
+	// 300 to 320 with no media service around it
+	var heavy []int64
+	for m := int64(100); m <= 140; m++ {
+		if m != 120 { // one quieter minute inside the film
+			heavy = append(heavy, m)
+		}
+	}
+	for m := int64(300); m <= 320; m++ {
+		heavy = append(heavy, m)
+	}
+	got := StreamAwake(heavy, []int64{98})
+	if len(got) != 41 || got[0] != 100 || got[40] != 140 {
+		t.Fatalf("awake = %d minutes (%v..)", len(got), got[:2])
+	}
+}
+
+func TestEstimateSiteBytes(t *testing.T) {
+	// hour 10: site 1 in minutes 0-4 (8 requests), site 2 in minutes 0-1
+	// (2 requests); 1000 bytes in the first five minutes, 500 in minutes
+	// 10-14 when nothing was visited
+	rows := []store.VisitRow{
+		{Slot: 10, DomainID: 1, Mask: 0x1f, Reqs: 8},
+		{Slot: 10, DomainID: 2, Mask: 0x3, Reqs: 2},
+	}
+	t5 := []store.TrafficPoint{{Slot: 120, Down: 900, Up: 100}, {Slot: 122, Down: 500}}
+	got := EstimateSiteBytes(rows, t5, nil)
+	if got[1] != 800 || got[2] != 200 {
+		t.Fatalf("split = %v", got)
+	}
+	// without five-minute detail the hour is split by requests
+	got = EstimateSiteBytes(rows, nil, []store.TrafficPoint{{Slot: 10, Down: 1000}})
+	if got[1] != 800 || got[2] != 200 {
+		t.Fatalf("hourly split = %v", got)
+	}
+}
+
+func TestIsPeriodic(t *testing.T) {
+	// a ping every 5 minutes for two hours (one minute late now and then)
+	var poll []int64
+	for i := int64(0); i < 24; i++ {
+		m := 1000 + i*5
+		if i%7 == 3 {
+			m++
+		}
+		poll = append(poll, m)
+	}
+	if !IsPeriodic(poll) {
+		t.Fatal("regular polling not detected")
+	}
+	// a person: irregular stretches of several minutes
+	var human []int64
+	for _, s := range []struct{ at, n int64 }{{0, 6}, {20, 3}, {31, 1}, {70, 12}, {95, 2}, {160, 4}, {171, 1}, {240, 8}, {300, 2}, {303, 1}, {390, 5}, {420, 2}, {500, 7}} {
+		for j := int64(0); j < s.n; j++ {
+			human = append(human, s.at+j)
+		}
+	}
+	if IsPeriodic(human) {
+		t.Fatal("human use taken for polling")
+	}
+	if IsPeriodic(poll[:6]) {
+		t.Fatal("too little evidence must not be judged")
+	}
+}
+
+func TestMergeHops(t *testing.T) {
+	// ip 1 until minute 100, ip 2 (same operator) from minute 99: one phone
+	// that changed address; ip 3 (another operator) overlaps: a second device
+	runs := []Run{{IPID: 1, Start: 0, End: 100}, {IPID: 2, Start: 99, End: 200}, {IPID: 3, Start: 150, End: 180}}
+	same := func(a, b int64) bool { return a+b == 3 } // 1 and 2
+	if got := MaxConcurrent(runs); got != 2 {
+		t.Fatalf("raw peak = %d", got)
+	}
+	merged := MergeHops(runs, same)
+	ov := Overlaps(merged, 1)
+	for _, o := range ov {
+		if o.Start < 150 {
+			t.Fatalf("the address change counted as two devices: %+v", ov)
+		}
+	}
+	if MaxConcurrent(merged) != 2 {
+		t.Fatalf("peak = %d, want 2", MaxConcurrent(merged))
+	}
+	// without the same operator nothing is merged
+	if MaxConcurrent(MergeHops(runs, func(a, b int64) bool { return false })) != 2 {
+		t.Fatal("unmerged peak changed")
+	}
+	if o := Overlaps(MergeHops(runs, func(a, b int64) bool { return false }), 1); len(o) == 0 || o[0].Start != 99 {
+		t.Fatalf("unrelated addresses must still overlap at the handover: %+v", o)
+	}
+}
+
 func TestMergeMinutes(t *testing.T) {
 	got := MergeMinutes([]int64{1, 3, 5}, []int64{2, 3, 6, 7})
 	want := []int64{1, 2, 3, 5, 6, 7}

@@ -58,6 +58,13 @@ The access log records only when a connection opens, so a video or a page being 
 - **Who is online** also asks Xray (`GetStatsOnlineIpList`, needs `"statsUserOnline": true` in the policy). Long-lived connections no longer drop off the list. If the policy is off, the log alone is used.
 - **Addresses without a domain** are classified by the network owner in the ASN database when it is one-purpose (Telegram, Netflix, game publishers); other addresses stay "Direct IP".
 
+- **Machine-like polling** (short pulses at a near-constant interval for hours, `analytics.IsPeriodic`) is kept as requests but not counted as time spent, and the site is marked "automatic".
+- **A changed address is not a second device.** When a new address of the same operator (same ASN, or the same /16 without a GeoIP ASN database) starts within two minutes of the old one going quiet, both count as one device, in the online list, in IP-limit alerts and in the concurrency history.
+- **Data per site** is an estimate: each five-minute slot of the user's measured traffic is shared among the sites active in it, in proportion to their requests (hourly once the five-minute detail has expired).
+- **Sleep:** minutes of sustained transfer (at least 1 MB, stored as `tact.hmask`) count as awake when a video, music, social or game service was opened shortly before; a night-time update download does not.
+
+The **Data quality** card in System shows, per inbound, the share of connections without a domain name (sniffing off) and of clients that are CDN edges (real address not passed through), whether the statistics and online APIs answer, and the log's time zone. The time zone is checked by comparing log timestamps with the moment lines are read while the collector keeps up; once the offset is stable for a few minutes, times are corrected automatically (remembered in `kv` as `log:shift`).
+
 Sites no rule knows are listed in Settings, where one click files them under a category.
 
 ## Sleep analysis

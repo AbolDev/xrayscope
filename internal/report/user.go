@@ -185,6 +185,9 @@ func (e *Env) User(ctx ctxT, userID int64, rg Range) (*UserReport, error) {
 		return nil, err
 	}
 	r.TopSites = head(analytics.Sites(visits, domains, services, rg.fromMin(), rg.toMin(), tact[userID]), 100)
+	if err := e.addSiteBytes(ctx, userID, rg, visits, domains, r.TopSites); err != nil {
+		return nil, err
+	}
 
 	// IPs and devices
 	if err := e.fillIPs(ctx, r, rows, rg); err != nil {
@@ -193,8 +196,6 @@ func (e *Env) User(ctx ctxT, userID int64, rg Range) (*UserReport, error) {
 
 	// concurrency
 	runs := analytics.IPRuns(rows, e.GapMin)
-	r.Concurrency.Limit = u.LimitIP
-	r.Concurrency.Max = analytics.MaxConcurrent(runs)
 	ipAddr := map[int64]string{}
 	ipIDs := make([]int64, 0)
 	idSeen := map[int64]bool{}
@@ -211,6 +212,10 @@ func (e *Env) User(ctx ctxT, userID int64, rg Range) (*UserReport, error) {
 	for id, ip := range ipMap {
 		ipAddr[id] = ip.IP
 	}
+	// an address change on a mobile network is not a second device
+	runs = analytics.MergeHops(runs, SameNetwork(ipMap))
+	r.Concurrency.Limit = u.LimitIP
+	r.Concurrency.Max = analytics.MaxConcurrent(runs)
 	for _, o := range analytics.Overlaps(runs, 2) {
 		v := OverlapView{Start: o.Start * 60, End: o.End*60 + 59, Peak: o.Peak}
 		for _, id := range o.IPs {
@@ -323,6 +328,15 @@ func (e *Env) fillSleep(ctx ctxT, r *UserReport, rg Range) error {
 	if tact, err := e.Store.TAct(ctx, r.User.ID, wr.fromHour(), wr.toHour()); err == nil {
 		pres = analytics.MergeMinutes(pres, analytics.MaskMinutes(tact[r.User.ID], wr.From/60, wr.To/60))
 	}
+	// watching a video makes no new connections but is being awake
+	if heavy, err := e.Store.THeavy(ctx, r.User.ID, wr.fromHour(), wr.toHour()); err == nil && len(heavy[r.User.ID]) > 0 {
+		media, err := e.mediaMinutes(ctx, r.User.ID, wr)
+		if err != nil {
+			return err
+		}
+		awake := analytics.StreamAwake(analytics.MaskMinutes(heavy[r.User.ID], wr.From/60, wr.To/60), media)
+		inter = analytics.MergeMinutes(inter, awake)
+	}
 	toDay := analytics.LocalDay(e.Loc, end/60)
 	for toDay > 0 && analytics.LocalNoon(e.Loc, toDay) > end/60 {
 		toDay-- // that night is not over yet
@@ -330,6 +344,28 @@ func (e *Env) fillSleep(ctx ctxT, r *UserReport, rg Range) error {
 	fromDay := analytics.LocalDay(e.Loc, wr.From/60) + 1
 	r.Sleep = analytics.AnalyzeSleep(pres, inter, fromDay, toDay, e.Loc, analytics.DefaultSleepOptions())
 	return nil
+}
+
+// mediaCategories are services someone opens to watch, listen or play.
+var mediaCategories = map[string]bool{"video": true, "music": true, "social": true, "gaming": true, "adult": true}
+
+// mediaMinutes lists the minutes in which the user used a media service.
+func (e *Env) mediaMinutes(ctx ctxT, userID int64, rg Range) ([]int64, error) {
+	rows, err := e.Store.Svc(ctx, userID, rg.fromHour(), rg.toHour())
+	if err != nil {
+		return nil, err
+	}
+	services, err := e.Store.Services(ctx)
+	if err != nil {
+		return nil, err
+	}
+	masks := map[int64]int64{}
+	for _, r := range rows {
+		if mediaCategories[services[r.ServiceID].Category] {
+			masks[r.Hour] |= r.Mask
+		}
+	}
+	return analytics.MaskMinutes(masks, rg.From/60, rg.To/60), nil
 }
 
 // SiteList is a filtered, paged list of sites.
@@ -365,6 +401,9 @@ func (e *Env) Sites(ctx ctxT, userID int64, rg Range, q, category string, limit,
 		return nil, err
 	}
 	all := analytics.Sites(visits, domains, services, rg.fromMin(), rg.toMin(), tact[userID])
+	if err := e.addSiteBytes(ctx, userID, rg, visits, domains, all); err != nil {
+		return nil, err
+	}
 	q = strings.ToLower(strings.TrimSpace(q))
 	out := all[:0]
 	for _, s := range all {

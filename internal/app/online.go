@@ -14,6 +14,24 @@ const (
 	onlineMaxJobs = 100 // users asked per round
 )
 
+const (
+	onlineUnknown int32 = iota
+	onlineOK
+	onlineOff
+)
+
+// OnlineAPIState reports whether Xray answers "who is online" questions:
+// "ok", "off" (policy statsUserOnline disabled) or "unknown" (not asked yet).
+func (a *App) OnlineAPIState() string {
+	switch a.onlineAPI.Load() {
+	case onlineOK:
+		return "ok"
+	case onlineOff:
+		return "off"
+	}
+	return "unknown"
+}
+
 // runOnline asks Xray itself who is connected. A connection that stays open
 // (a video, a download) writes one log line when it opens and then nothing, so
 // the log alone lets such users drop off the online list; Xray knows better.
@@ -71,10 +89,13 @@ func (a *App) runOnline(ctx context.Context) {
 				if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "online") {
 					// "statsUserOnline" is off in Xray's policy; try again much later
 					pausedUntil = time.Now().Add(10 * time.Minute)
-					a.Log.Info("xray does not report online users (policy statsUserOnline is off); using the access log only")
+					if a.onlineAPI.Swap(onlineOff) != onlineOff {
+						a.Log.Info("xray does not report online users (policy statsUserOnline is off); using the access log only")
+					}
 				}
 				break
 			}
+			a.onlineAPI.Store(onlineOK)
 			uid := ids[e]
 			if uid == 0 {
 				continue
