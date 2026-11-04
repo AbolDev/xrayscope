@@ -31,8 +31,18 @@ type Batch struct {
 	Lines   int64        `json:"lines,omitempty"`
 	Recs    []Rec        `json:"recs,omitempty"`
 	Traffic []TrafficRec `json:"traffic,omitempty"`
+	// Active lists the minutes in which a user really moved data (measured
+	// from Xray's statistics, not from log lines).
+	Active []ActiveRec `json:"active,omitempty"`
 	// Users carries panel-side account state (quota, expiry, limits).
 	Users []PanelUser `json:"users,omitempty"`
+}
+
+// ActiveRec is the set of minutes of one hour with real traffic of a user.
+type ActiveRec struct {
+	U    string `json:"u"`
+	Hour int64  `json:"h"` // unix hour
+	Mask int64  `json:"m"` // bit i = minute i of the hour
 }
 
 // PanelUser is an account as known by the VPN panel.

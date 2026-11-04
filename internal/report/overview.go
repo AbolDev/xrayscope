@@ -185,7 +185,11 @@ func (e *Env) Overview(ctx ctxT, rg Range) (*Overview, error) {
 	if err != nil {
 		return nil, err
 	}
-	o.Categories, o.Services = analytics.TimeSpent(clipSvc(svcRows, rg), services)
+	tact, err := e.Store.TAct(ctx, 0, rg.fromHour(), rg.toHour())
+	if err != nil {
+		return nil, err
+	}
+	o.Categories, o.Services = analytics.TimeSpent(clipSvc(svcRows, rg), services, tact)
 	o.Services = head(o.Services, 15)
 
 	o.Heatmap = analytics.Heatmap(rows, e.Loc, true)
@@ -322,6 +326,10 @@ func (e *Env) Users(ctx ctxT, rg Range) ([]UserRow, error) {
 	if err != nil {
 		return nil, err
 	}
+	tactAll, err := e.Store.TAct(ctx, 0, rg.fromHour(), rg.toHour())
+	if err != nil {
+		return nil, err
+	}
 	svcBy := map[int64][]store.SvcRow{}
 	for _, r := range clipSvc(svcRows, rg) {
 		svcBy[r.UserID] = append(svcBy[r.UserID], r)
@@ -358,7 +366,7 @@ func (e *Env) Users(ctx ctxT, rg Range) ([]UserRow, error) {
 			r.MaxIPs = analytics.MaxConcurrent(analytics.IPRuns(rs, e.GapMin))
 		}
 		if sr := svcBy[u.ID]; len(sr) > 0 {
-			cats, svcs := analytics.TimeSpent(sr, services)
+			cats, svcs := analytics.TimeSpent(sr, services, tactAll)
 			for _, c := range cats {
 				if !isBackgroundCategory(c.Category) {
 					r.TopCategory = c.Category

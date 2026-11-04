@@ -431,14 +431,27 @@ func (a *Agent) runSpeed(ctx context.Context) {
 		return "", false
 	}}
 	tr := xraystats.NewTracker(src)
-	go tr.Run(ctx, 2*time.Second)
-	tick := time.NewTicker(3 * time.Second)
+	go tr.Run(ctx, time.Second)
+	tick := time.NewTicker(time.Second)
 	defer tick.Stop()
+	lastActive := time.Now()
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-tick.C:
+		}
+		if time.Since(lastActive) >= 30*time.Second {
+			lastActive = time.Now()
+			var recs []model.ActiveRec
+			for _, m := range tr.DrainActive() {
+				recs = append(recs, model.ActiveRec{U: m.Email, Hour: m.Hour, Mask: m.Mask})
+			}
+			if len(recs) > 0 {
+				if err := a.spool(model.Batch{Active: recs}); err != nil {
+					a.log.Warn("spool traffic minutes", "err", err)
+				}
+			}
 		}
 		speeds := map[string][2]int64{}
 		for email, r := range tr.Rates() {

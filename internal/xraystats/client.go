@@ -48,11 +48,98 @@ func NewClient(addr string) *Client {
 	return &Client{Addr: addr, http: &http.Client{Transport: tr, Timeout: 5 * time.Second}}
 }
 
-const method = "/xray.app.stats.command.StatsService/QueryStats"
+const (
+	method       = "/xray.app.stats.command.StatsService/QueryStats"
+	methodOnline = "/xray.app.stats.command.StatsService/GetStatsOnlineIpList"
+)
 
 // Query fetches every user counter ("user>>>EMAIL>>>traffic>>>uplink").
 func (c *Client) Query(ctx context.Context) (map[string][2]int64, error) {
-	body := frame(encodeRequest("user>>>"))
+	msg, err := c.call(ctx, method, encodeRequest("user>>>"))
+	if err != nil {
+		return nil, err
+	}
+	return decodeResponse(msg)
+}
+
+// OnlineIPs returns the addresses a user is connected from right now, with
+// the unix time each was last seen. It needs "statsUserOnline" in Xray's
+// policy; without it Xray answers with an error.
+func (c *Client) OnlineIPs(ctx context.Context, email string) (map[string]int64, error) {
+	msg, err := c.call(ctx, methodOnline, encodeRequest("user>>>"+email+">>>online"))
+	if err != nil {
+		return nil, err
+	}
+	return decodeOnline(msg)
+}
+
+// decodeOnline parses GetStatsOnlineIpListResponse{name=1, ips=2: map<string,int64>}.
+func decodeOnline(msg []byte) (map[string]int64, error) {
+	out := map[string]int64{}
+	for len(msg) > 0 {
+		tag, n := readVarint(msg)
+		if n == 0 {
+			return nil, errors.New("xray api: malformed response")
+		}
+		msg = msg[n:]
+		switch tag & 7 {
+		case 2:
+			l, n := readVarint(msg)
+			if n == 0 || int(l) > len(msg)-n {
+				return nil, errors.New("xray api: malformed response")
+			}
+			field := msg[n : n+int(l)]
+			msg = msg[n+int(l):]
+			if tag>>3 != 2 {
+				continue
+			}
+			var ip string
+			var ts int64
+			for len(field) > 0 { // one map entry: key=1 string, value=2 varint
+				et, n := readVarint(field)
+				if n == 0 {
+					return nil, errors.New("xray api: malformed response")
+				}
+				field = field[n:]
+				switch et & 7 {
+				case 2:
+					l, n := readVarint(field)
+					if n == 0 || int(l) > len(field)-n {
+						return nil, errors.New("xray api: malformed response")
+					}
+					if et>>3 == 1 {
+						ip = string(field[n : n+int(l)])
+					}
+					field = field[n+int(l):]
+				case 0:
+					v, n := readVarint(field)
+					if n == 0 {
+						return nil, errors.New("xray api: malformed response")
+					}
+					if et>>3 == 2 {
+						ts = int64(v)
+					}
+					field = field[n:]
+				default:
+					return nil, errors.New("xray api: unsupported field")
+				}
+			}
+			if ip != "" {
+				out[ip] = ts
+			}
+		case 0:
+			_, n := readVarint(msg)
+			msg = msg[n:]
+		default:
+			return nil, errors.New("xray api: unsupported field")
+		}
+	}
+	return out, nil
+}
+
+// call makes one unary gRPC call and returns the response message.
+func (c *Client) call(ctx context.Context, method string, msgBody []byte) ([]byte, error) {
+	body := frame(msgBody)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://"+c.Addr+method, bytes.NewReader(body))
 	if err != nil {
 		return nil, err
@@ -77,11 +164,7 @@ func (c *Client) Query(ctx context.Context) (map[string][2]int64, error) {
 	if st := resp.Header.Get("Grpc-Status"); st != "" && st != "0" {
 		return nil, fmt.Errorf("xray api: %s (%s)", resp.Header.Get("Grpc-Message"), st)
 	}
-	msg, err := unframe(data)
-	if err != nil {
-		return nil, err
-	}
-	return decodeResponse(msg)
+	return unframe(data)
 }
 
 // ---------------------------------------------------------------- wire format

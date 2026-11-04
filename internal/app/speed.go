@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"xrayscope/internal/model"
 	"xrayscope/internal/panel"
 	"xrayscope/internal/xraystats"
 )
@@ -132,5 +133,26 @@ func (a *App) runSpeed(ctx context.Context) {
 	if a.Panel == nil && a.Cfg.XrayAPI == "" {
 		return
 	}
-	a.Speed.Run(ctx, time.Second)
+	go a.Speed.Run(ctx, time.Second)
+	tick := time.NewTicker(30 * time.Second)
+	defer tick.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-tick.C:
+		}
+		marks := a.Speed.DrainActive()
+		if len(marks) == 0 {
+			continue
+		}
+		recs := make([]model.ActiveRec, 0, len(marks))
+		for _, m := range marks {
+			recs = append(recs, model.ActiveRec{U: m.Email, Hour: m.Hour, Mask: m.Mask})
+		}
+		if err := a.Store.ApplyActive(0, recs); err != nil {
+			a.Log.Warn("store traffic minutes", "err", err)
+		}
+		a.RecordOutbox(model.Batch{Active: recs})
+	}
 }

@@ -146,6 +146,55 @@ func TestTrackerSpeeds(t *testing.T) {
 	}
 }
 
+func TestDecodeOnline(t *testing.T) {
+	entry := func(ip string, ts uint64) []byte {
+		e := []byte{0x0a}
+		e = appendVarint(e, uint64(len(ip)))
+		e = append(e, ip...)
+		e = append(e, 0x10)
+		e = appendVarint(e, ts)
+		out := []byte{0x12}
+		out = appendVarint(out, uint64(len(e)))
+		return append(out, e...)
+	}
+	name := "user>>>a>>>online"
+	msg := append([]byte{0x0a, byte(len(name))}, name...)
+	msg = append(msg, entry("203.0.113.9", 1700000000)...)
+	msg = append(msg, entry("198.51.100.7", 1700000123)...)
+	got, err := decodeOnline(msg)
+	if err != nil || len(got) != 2 || got["203.0.113.9"] != 1700000000 || got["198.51.100.7"] != 1700000123 {
+		t.Fatalf("got %v err %v", got, err)
+	}
+	if _, err := decodeOnline(msg[:len(msg)-3]); err == nil {
+		t.Fatal("a truncated response must fail")
+	}
+}
+
+func TestTrackerActiveMinutes(t *testing.T) {
+	// minute 1: a moves 100 KB (real use) and b 1 KB (keep-alive noise)
+	q := &seq{steps: []map[string][2]int64{
+		{"a": {0, 0}, "b": {0, 0}},
+		{"a": {0, 100 << 10}, "b": {0, 1 << 10}},
+		{"a": {0, 100 << 10}, "b": {0, 1 << 10}}, // next minute: minute 1 closes
+	}}
+	tr := NewTracker(q)
+	ctx := context.Background()
+	base := time.Unix(60*600, 0) // the start of minute 600
+	tr.Sample(ctx, base)
+	tr.Sample(ctx, base.Add(30*time.Second))
+	if got := tr.DrainActive(); len(got) != 0 {
+		t.Fatalf("the minute in progress must not be reported: %+v", got)
+	}
+	tr.Sample(ctx, base.Add(70*time.Second))
+	got := tr.DrainActive()
+	if len(got) != 1 || got[0].Email != "a" || got[0].Hour != 10 || got[0].Mask != 1<<0 {
+		t.Fatalf("active = %+v", got)
+	}
+	if len(tr.DrainActive()) != 0 {
+		t.Fatal("a minute must be reported once")
+	}
+}
+
 func TestTrackerError(t *testing.T) {
 	tr := NewTracker(&seq{err: errors.New("down")})
 	tr.Sample(context.Background(), time.Now())

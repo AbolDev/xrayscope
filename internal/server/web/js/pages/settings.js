@@ -107,6 +107,30 @@ export async function settingsPage(ctx) {
       } }, icon('refresh'), t('set.reclassify')),
       h('span', { class: 'help muted' }, t('set.reclassify_help'))));
 
+  // ---- sites no rule knows: one click to file them under a category
+  const unBody = h('tbody');
+  const unCard = h('div', { class: 'card' }, h('h2', null, t('set.unclassified')),
+    h('p', { class: 'muted', style: { marginTop: 0 } }, t('set.unclassified_help')),
+    h('div', { class: 'tbl-wrap' }, h('table', { class: 'tbl' }, unBody)));
+  api.get('domains/unclassified').then((list) => {
+    if (!list.length) { unBody.replaceChildren(h('tr', null, h('td', { class: 'muted' }, t('set.unclassified_none')))); return; }
+    unBody.replaceChildren(...list.map((u) => {
+      const cat = h('select', { class: 'input' }, cats.filter((c) => c !== 'other').map((c) => h('option', { value: c }, catName(c))));
+      const row = h('tr', null,
+        h('td', { class: 'mono' }, u.domain), h('td', { class: 'num muted' }, num(u.reqs)), h('td', null, cat),
+        h('td', null, h('button', { class: 'btn sm', onclick: async () => {
+          const r = await guard(() => api.post('rules/add', { domain: u.domain, category: cat.value, service: '' }));
+          if (!r) return;
+          s.custom_rules = s.custom_rules.filter((x) => x.domain.toLowerCase() !== r.rule.domain);
+          s.custom_rules.push(r.rule);
+          drawRules();
+          row.remove();
+          toast(t('set.rule_added', { n: num(r.changed) }), 'ok');
+        } }, icon('plus'), t('set.rule_add'))));
+      return row;
+    }));
+  }).catch(() => {});
+
   // ---- backup & retention
   const bk = s.backup, rt = s.retention;
   const backups = h('div', { class: 'card' }, h('h2', null, t('set.backup')),
@@ -133,7 +157,7 @@ export async function settingsPage(ctx) {
       if (await save(s, token)) { toast(t('set.saved'), 'ok'); state.meta = await api.get('meta'); }
     } }, t('save')));
 
-  page.append(general, telegram, alerts, rulesCard, backups, account, saveBar);
+  page.append(general, telegram, alerts, rulesCard, unCard, backups, account, saveBar);
   return page;
 }
 

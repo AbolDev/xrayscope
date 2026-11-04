@@ -166,6 +166,8 @@ func (s *Server) routes(mux *http.ServeMux) {
 	authed("PUT /api/settings", s.handlePutSettings)
 	authed("POST /api/telegram/test", s.handleTelegramTest)
 	authed("POST /api/rules/reclassify", s.handleReclassify)
+	authed("POST /api/rules/add", s.handleAddRule)
+	authed("GET /api/domains/unclassified", s.handleUnclassified)
 	authed("POST /api/geo/refresh", s.handleGeoRefresh)
 	authed("GET /api/backups", s.handleBackups)
 	authed("POST /api/backups", s.handleCreateBackup)

@@ -50,6 +50,16 @@ The read offset of the log is written in the **same transaction** as the data de
 
 Each site belongs to a category; `update`, `system`, `cdn`, `ads`, `telemetry`, `push`, `connectivity` and `dns` are *background*. A minute counts as *interactive* when at least one non-background site was touched. This is what separates a person using the phone from a phone that is merely connected.
 
+## Accuracy
+
+The access log records only when a connection opens, so a video or a page being read leaves silent minutes. Three measures keep the numbers close to reality:
+
+- **Time on a site** counts the minutes between two visits of the same site when the pause is short (up to 4 minutes, `analytics.BridgeMinutes`) or when the user's connection kept moving data (up to 45 minutes, at least 70 % of the pause with traffic). The traffic minutes come from Xray's statistics API: every second the per-user counters are sampled, and a minute with at least 30 KB moved is stored in `tact` (one 60-bit mask per user and hour; nodes send them with their batches). Without the statistics API only the 4-minute rule applies.
+- **Who is online** also asks Xray (`GetStatsOnlineIpList`, needs `"statsUserOnline": true` in the policy). Long-lived connections no longer drop off the list. If the policy is off, the log alone is used.
+- **Addresses without a domain** are classified by the network owner in the ASN database when it is one-purpose (Telegram, Netflix, game publishers); other addresses stay "Direct IP".
+
+Sites no rule knows are listed in Settings, where one click files them under a category.
+
 ## Sleep analysis
 
 For each night (noon → noon, in the display time zone):

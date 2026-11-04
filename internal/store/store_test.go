@@ -143,6 +143,39 @@ func TestStrayRequestsDoNotCountAsUse(t *testing.T) {
 	}
 }
 
+// A connection to a bare address is told apart by who owns the network.
+func TestAddressClassifiedByOwner(t *testing.T) {
+	s := openTest(t)
+	ctx := context.Background()
+	s.SetGeo(func(ip string) (string, int, string) {
+		if ip == "149.154.167.51" {
+			return "NL", 62041, "Telegram Messenger Inc"
+		}
+		return "US", 1, "Some Hosting Ltd"
+	})
+	base := time.Now().Add(-time.Hour).Unix() / 60
+	recs := []model.Rec{
+		{M: base, U: "eve", IP: "1.1.1.1", D: "149.154.167.51", N: 3},
+		{M: base, U: "eve", IP: "1.1.1.1", D: "203.0.113.77", N: 3},
+	}
+	if _, err := s.ApplyBatch(0, recs, nil, 2); err != nil {
+		t.Fatal(err)
+	}
+	u, _ := s.UserByEmail(ctx, "eve")
+	svc, _ := s.Svc(ctx, u.ID, base/60-1, base/60+2)
+	services, _ := s.Services(ctx)
+	got := map[string]bool{}
+	for _, r := range svc {
+		got[services[r.ServiceID].Category+"/"+services[r.ServiceID].Name] = true
+	}
+	if !got["messaging/Telegram"] {
+		t.Fatalf("the Telegram address was not recognised: %v", got)
+	}
+	if got["messaging/Telegram"] && len(got) != 2 {
+		t.Fatalf("an unknown address must stay a direct IP: %v", got)
+	}
+}
+
 func TestTrafficDeltas(t *testing.T) {
 	s := openTest(t)
 	ctx := context.Background()

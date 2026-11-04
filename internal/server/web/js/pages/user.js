@@ -326,7 +326,10 @@ function network(r) {
 
 function deviceTag(d, count) {
   const label = [d.os + (d.vendor ? ' (' + d.vendor + ')' : ''), d.browser].filter(Boolean).join(', ');
-  return h('span', { class: 'tag acc', title: t('confidence', { p: num(d.confidence * 100) }) }, label,
+  // a guess built on little evidence is shown as a guess
+  const weak = d.confidence < 0.35;
+  return h('span', { class: weak ? 'tag' : 'tag acc', title: t('confidence', { p: num(d.confidence * 100) }) + (weak ? ' - ' + t('dev.weak') : '') },
+    weak ? '? ' + label : label,
     h('span', { class: 'faint' }, num(d.confidence * 100) + '%'), count ? h('span', { class: 'faint' }, 'x' + num(count)) : null);
 }
 

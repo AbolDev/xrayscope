@@ -42,6 +42,49 @@ func UnionMinutes(rows []store.ActRow, pick func(store.ActRow) int64) []int64 {
 	return out
 }
 
+// MaskMinutes lists the minutes of an hour->mask map that fall in [from, to).
+func MaskMinutes(masks map[int64]int64, from, to int64) []int64 {
+	hours := make([]int64, 0, len(masks))
+	for h := range masks {
+		hours = append(hours, h)
+	}
+	sort.Slice(hours, func(i, j int) bool { return hours[i] < hours[j] })
+	var out []int64
+	for _, h := range hours {
+		hourMinutes(h, masks[h], func(m int64) {
+			if m >= from && m < to {
+				out = append(out, m)
+			}
+		})
+	}
+	return out
+}
+
+// MergeMinutes returns the sorted union of two sorted minute lists.
+func MergeMinutes(a, b []int64) []int64 {
+	out := make([]int64, 0, len(a)+len(b))
+	i, j := 0, 0
+	for i < len(a) || j < len(b) {
+		var m int64
+		switch {
+		case j >= len(b) || (i < len(a) && a[i] < b[j]):
+			m = a[i]
+			i++
+		case i >= len(a) || b[j] < a[i]:
+			m = b[j]
+			j++
+		default:
+			m = a[i]
+			i++
+			j++
+		}
+		if len(out) == 0 || out[len(out)-1] != m {
+			out = append(out, m)
+		}
+	}
+	return out
+}
+
 // Presence picks the "any traffic" mask.
 func Presence(r store.ActRow) int64 { return r.Mask }
 

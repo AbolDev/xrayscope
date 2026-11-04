@@ -22,6 +22,18 @@ type Source struct {
 	lastTry time.Time
 }
 
+// OnlineIPs asks the current API client who a user is connected from. It
+// returns ErrNoAPI until a query has found the API.
+func (s *Source) OnlineIPs(ctx context.Context, email string) (map[string]int64, error) {
+	s.mu.Lock()
+	cl := s.client
+	s.mu.Unlock()
+	if cl == nil {
+		return nil, ErrNoAPI
+	}
+	return cl.OnlineIPs(ctx, email)
+}
+
 // Query implements Querier.
 func (s *Source) Query(ctx context.Context) (map[string][2]int64, error) {
 	s.mu.Lock()

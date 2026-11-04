@@ -793,6 +793,54 @@ func (s *Server) handleReclassify(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"changed": n})
 }
 
+// handleUnclassified lists the busiest sites that no rule recognises.
+func (s *Server) handleUnclassified(w http.ResponseWriter, r *http.Request) {
+	list, err := s.app.Store.Unclassified(r.Context(), 40)
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, list)
+}
+
+// handleAddRule saves one custom rule and applies it to what is stored.
+func (s *Server) handleAddRule(w http.ResponseWriter, r *http.Request) {
+	var rule classify.Rule
+	if !readJSON(w, r, &rule) {
+		return
+	}
+	rule.Domain = strings.Trim(strings.ToLower(strings.TrimSpace(rule.Domain)), ".")
+	rule.Service = strings.TrimSpace(rule.Service)
+	if rule.Domain == "" || !classify.IsKnownCategory(rule.Category) {
+		fail(w, http.StatusBadRequest, "a domain and a known category are required")
+		return
+	}
+	if rule.Service == "" {
+		rule.Service = rule.Domain
+	}
+	cur := s.app.Settings.Get()
+	rules := cur.CustomRules[:0:0]
+	for _, x := range cur.CustomRules {
+		if !strings.EqualFold(x.Domain, rule.Domain) {
+			rules = append(rules, x)
+		}
+	}
+	cur.CustomRules = append(rules, rule)
+	if err := s.app.Settings.Set(cur); err != nil {
+		fail(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	n, err := s.app.Store.Reclassify()
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	s.cacheMu.Lock()
+	s.cache = map[string]cacheEntry{}
+	s.cacheMu.Unlock()
+	writeJSON(w, http.StatusOK, map[string]any{"changed": n, "rule": rule})
+}
+
 func (s *Server) handleGeoRefresh(w http.ResponseWriter, r *http.Request) {
 	if s.app.Geo == nil {
 		fail(w, http.StatusBadRequest, "no geo database is configured (geo_db / asn_db)")

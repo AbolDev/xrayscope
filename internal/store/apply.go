@@ -306,11 +306,29 @@ func (s *Store) serviceID(tx *sql.Tx, category, name string) (int64, error) {
 	return id, nil
 }
 
+// classifyHost classifies a host name or address. A bare address that no rule
+// knows is tried against its network owner, so a connection without a domain
+// name can still be told apart (Telegram, Netflix, game servers).
+func (s *Store) classifyHost(cls *classify.Classifier, host string) classify.Info {
+	info := cls.Classify(host)
+	if info.Category != "ip" {
+		return info
+	}
+	if g := s.geo.Load(); g != nil {
+		if _, _, org := (*g)(host); org != "" {
+			if cat, svc, ok := classify.OrgHint(org); ok {
+				return classify.Info{Site: svc, Category: cat, Service: svc, Background: classify.IsBackground(cat)}
+			}
+		}
+	}
+	return info
+}
+
 func (s *Store) hostInfo(tx *sql.Tx, cls *classify.Classifier, host string) (hostInfo, error) {
 	if hi, ok := s.hosts[host]; ok {
 		return hi, nil
 	}
-	info := cls.Classify(host)
+	info := s.classifyHost(cls, host)
 	svcID, err := s.serviceID(tx, info.Category, info.Service)
 	if err != nil {
 		return hostInfo{}, err
@@ -527,7 +545,7 @@ func (s *Store) Reclassify() (changed int, err error) {
 		s.resetCaches()
 	}()
 	for _, r := range all {
-		info := cls.Classify(r.name)
+		info := s.classifyHost(cls, r.name)
 		svcID, err := s.serviceID(tx, info.Category, info.Service)
 		if err != nil {
 			return 0, err

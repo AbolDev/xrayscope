@@ -23,7 +23,18 @@ type Point struct {
 const (
 	historyLen  = 300 // samples kept per user (five minutes at one second)
 	idleSamples = 60  // drop a user's history after this many silent samples
+
+	// ActiveMinBytes is how much a user must transfer within one minute for
+	// that minute to count as real use rather than keep-alive chatter.
+	ActiveMinBytes = 30 << 10
 )
+
+// ActiveMark is the set of minutes of one hour with real traffic.
+type ActiveMark struct {
+	Email string
+	Hour  int64
+	Mask  int64
+}
 
 // Tracker samples a Querier and derives per-user speeds from the counter
 // deltas. It is safe for concurrent use.
@@ -38,11 +49,54 @@ type Tracker struct {
 	quiet   map[string]int
 	updated time.Time
 	err     error
+
+	minute int64            // the minute being accumulated (unix minutes)
+	bytes  map[string]int64 // bytes moved so far in that minute
+	marks  map[string]map[int64]int64
 }
 
 // NewTracker creates a tracker around a querier.
 func NewTracker(q Querier) *Tracker {
-	return &Tracker{q: q, rates: map[string]Rate{}, hist: map[string][]Point{}, quiet: map[string]int{}}
+	return &Tracker{q: q, rates: map[string]Rate{}, hist: map[string][]Point{}, quiet: map[string]int{},
+		bytes: map[string]int64{}, marks: map[string]map[int64]int64{}}
+}
+
+// account adds one sample's transfer to the current minute and closes the
+// previous minute when a new one starts.
+func (t *Tracker) account(now time.Time, moved map[string]int64) {
+	min := now.Unix() / 60
+	if t.minute != 0 && min != t.minute {
+		for email, b := range t.bytes {
+			if b >= ActiveMinBytes {
+				m := t.marks[email]
+				if m == nil {
+					m = map[int64]int64{}
+					t.marks[email] = m
+				}
+				m[t.minute/60] |= 1 << uint(t.minute%60)
+			}
+		}
+		t.bytes = map[string]int64{}
+	}
+	t.minute = min
+	for email, b := range moved {
+		t.bytes[email] += b
+	}
+}
+
+// DrainActive returns the minutes finished since the last call and forgets
+// them. The minute still in progress is kept for the next call.
+func (t *Tracker) DrainActive() []ActiveMark {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	var out []ActiveMark
+	for email, hours := range t.marks {
+		for h, m := range hours {
+			out = append(out, ActiveMark{Email: email, Hour: h, Mask: m})
+		}
+	}
+	t.marks = map[string]map[int64]int64{}
+	return out
 }
 
 // Run samples every interval until ctx ends.
@@ -76,6 +130,7 @@ func (t *Tracker) Sample(ctx context.Context, now time.Time) {
 	t.err = nil
 	t.updated = now
 	rates := make(map[string]Rate, len(cur))
+	moved := map[string]int64{}
 	if t.prev != nil {
 		dt := now.Sub(t.prevAt).Seconds()
 		if dt > 0 {
@@ -92,9 +147,11 @@ func (t *Tracker) Sample(ctx context.Context, now time.Time) {
 					continue
 				}
 				rates[email] = Rate{Up: int64(float64(up) / dt), Down: int64(float64(down) / dt)}
+				moved[email] = up + down
 			}
 		}
 	}
+	t.account(now, moved)
 	t.rates = rates
 	t.prev, t.prevAt = cur, now
 

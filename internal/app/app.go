@@ -75,6 +75,7 @@ type App struct {
 
 	// Speed samples Xray's statistics API; SpeedBook adds remote nodes.
 	Speed     *xraystats.Tracker
+	SpeedSrc  *xraystats.Source
 	SpeedBook *SpeedBook
 
 	// PullInterval overrides how often pull nodes are collected (tests).
@@ -138,7 +139,8 @@ func New(cfg config.Config, version string, log *slog.Logger) (*App, error) {
 		return nil, err
 	}
 
-	a.Speed = xraystats.NewTracker(&xraystats.Source{Override: cfg.XrayAPI, Find: a.apiFinder})
+	a.SpeedSrc = &xraystats.Source{Override: cfg.XrayAPI, Find: a.apiFinder}
+	a.Speed = xraystats.NewTracker(a.SpeedSrc)
 	a.SpeedBook = NewSpeedBook()
 
 	a.Bot = telegram.New(cfg.Proxy)
@@ -238,6 +240,7 @@ func (a *App) Run(ctx context.Context) {
 	}
 	run("speed", a.runSpeed)
 	run("pull", a.runPull)
+	run("online", a.runOnline)
 	run("maintenance", a.runMaintenance)
 	run("bot", func(ctx context.Context) { a.Bot.Poll(ctx, a.botHandler) })
 	wg.Wait()
@@ -450,6 +453,9 @@ func (a *App) IngestNode(ctx context.Context, n store.Node, b model.Batch, remot
 	}
 	a.Live.Observe(obs)
 	if err := a.Store.ApplyTraffic(n.ID, b.Traffic, nil); err != nil {
+		return err
+	}
+	if err := a.Store.ApplyActive(n.ID, b.Active); err != nil {
 		return err
 	}
 	if a.Panel == nil && len(b.Users) > 0 {

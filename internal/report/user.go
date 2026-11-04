@@ -156,7 +156,11 @@ func (e *Env) User(ctx ctxT, userID int64, rg Range) (*UserReport, error) {
 	if err != nil {
 		return nil, err
 	}
-	r.ByCategory, r.ByService = analytics.TimeSpent(clipSvc(svcRows, rg), services)
+	tact, err := e.Store.TAct(ctx, userID, rg.fromHour(), rg.toHour())
+	if err != nil {
+		return nil, err
+	}
+	r.ByCategory, r.ByService = analytics.TimeSpent(clipSvc(svcRows, rg), services, tact)
 	for _, s := range r.ByService {
 		if favoriteCategories[s.Category] && len(r.Favorites[s.Category]) < 3 {
 			r.Favorites[s.Category] = append(r.Favorites[s.Category], s)
@@ -180,7 +184,7 @@ func (e *Env) User(ctx ctxT, userID int64, rg Range) (*UserReport, error) {
 	if err != nil {
 		return nil, err
 	}
-	r.TopSites = head(analytics.Sites(visits, domains, services, rg.fromMin(), rg.toMin()), 100)
+	r.TopSites = head(analytics.Sites(visits, domains, services, rg.fromMin(), rg.toMin(), tact[userID]), 100)
 
 	// IPs and devices
 	if err := e.fillIPs(ctx, r, rows, rg); err != nil {
@@ -314,6 +318,11 @@ func (e *Env) fillSleep(ctx ctxT, r *UserReport, rg Range) error {
 	rows = clipAct(rows, wr)
 	pres := analytics.UnionMinutes(rows, analytics.Presence)
 	inter := analytics.UnionMinutes(rows, analytics.Interactive)
+	// minutes with measured traffic show a device that stayed connected even
+	// when no new connection (and so no log line) was made
+	if tact, err := e.Store.TAct(ctx, r.User.ID, wr.fromHour(), wr.toHour()); err == nil {
+		pres = analytics.MergeMinutes(pres, analytics.MaskMinutes(tact[r.User.ID], wr.From/60, wr.To/60))
+	}
 	toDay := analytics.LocalDay(e.Loc, end/60)
 	for toDay > 0 && analytics.LocalNoon(e.Loc, toDay) > end/60 {
 		toDay-- // that night is not over yet
@@ -351,7 +360,11 @@ func (e *Env) Sites(ctx ctxT, userID int64, rg Range, q, category string, limit,
 	if err != nil {
 		return nil, err
 	}
-	all := analytics.Sites(visits, domains, services, rg.fromMin(), rg.toMin())
+	tact, err := e.Store.TAct(ctx, userID, rg.fromHour(), rg.toHour())
+	if err != nil {
+		return nil, err
+	}
+	all := analytics.Sites(visits, domains, services, rg.fromMin(), rg.toMin(), tact[userID])
 	q = strings.ToLower(strings.TrimSpace(q))
 	out := all[:0]
 	for _, s := range all {

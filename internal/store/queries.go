@@ -357,6 +357,33 @@ func (s *Store) Visits(ctx context.Context, userID, fromHour, toHour int64) ([]V
 	return out, rows.Err()
 }
 
+// UnclassifiedSite is a site no rule knows, with how much it is used.
+type UnclassifiedSite struct {
+	Domain string `json:"domain"`
+	Reqs   int64  `json:"reqs"`
+	Users  int64  `json:"users"`
+}
+
+// Unclassified lists the most used sites that fell into "other".
+func (s *Store) Unclassified(ctx context.Context, limit int) ([]UnclassifiedSite, error) {
+	rows, err := s.r.QueryContext(ctx, `SELECT d.name, SUM(v.reqs) r, COUNT(DISTINCT v.user_id)
+		FROM domains d JOIN visits v ON v.domain_id=d.id
+		WHERE d.category='other' GROUP BY d.id ORDER BY r DESC LIMIT ?`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []UnclassifiedSite{}
+	for rows.Next() {
+		var u UnclassifiedSite
+		if err := rows.Scan(&u.Domain, &u.Reqs, &u.Users); err != nil {
+			return nil, err
+		}
+		out = append(out, u)
+	}
+	return out, rows.Err()
+}
+
 // Domains loads domains by id.
 func (s *Store) Domains(ctx context.Context, ids []int64) (map[int64]Domain, error) {
 	out := map[int64]Domain{}

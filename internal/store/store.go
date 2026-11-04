@@ -18,7 +18,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-const schemaVersion = 2
+const schemaVersion = 3
 
 // SchemaVersion is the database schema this build reads and writes.
 const SchemaVersion = schemaVersion
@@ -143,6 +143,21 @@ func (s *Store) migrate() error {
 		}
 		defer tx.Rollback()
 		for _, q := range schemaV2 {
+			if _, err := tx.Exec(q); err != nil {
+				return fmt.Errorf("%s: %w", q, err)
+			}
+		}
+		if err := tx.Commit(); err != nil {
+			return err
+		}
+	}
+	if cur < 3 {
+		tx, err := s.w.Begin()
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback()
+		for _, q := range schemaV3 {
 			if _, err := tx.Exec(q); err != nil {
 				return fmt.Errorf("%s: %w", q, err)
 			}

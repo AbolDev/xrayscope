@@ -230,6 +230,34 @@ func TestLiveWebSocket(t *testing.T) {
 	}
 }
 
+func TestUnclassifiedQueue(t *testing.T) {
+	e := newEnv(t)
+	e.login(t)
+	f, err := os.OpenFile(e.log, os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC()
+	for i := 0; i < 3; i++ {
+		f.WriteString(logLine(now, "203.0.113.9", "api.obscure-shop.example", "zed@x"))
+	}
+	f.Close()
+	waitUntil(t, "unclassified site listed", func() bool {
+		_, b := e.do(t, "GET", "/api/domains/unclassified", nil)
+		return strings.Contains(string(b), "obscure-shop.example")
+	})
+	if code, b := e.do(t, "POST", "/api/rules/add", map[string]string{"domain": "obscure-shop.example", "category": "shopping"}); code != 200 {
+		t.Fatalf("add rule: %d %s", code, b)
+	}
+	_, b := e.do(t, "GET", "/api/domains/unclassified", nil)
+	if strings.Contains(string(b), "obscure-shop.example") {
+		t.Fatalf("the site is still listed after it was categorised: %s", b)
+	}
+	if code, _ := e.do(t, "POST", "/api/rules/add", map[string]string{"domain": "x.example", "category": "nonsense"}); code != 400 {
+		t.Fatalf("an unknown category must be refused, got %d", code)
+	}
+}
+
 func TestAuthRequired(t *testing.T) {
 	e := newEnv(t)
 	for _, p := range []string{"/api/overview", "/api/users", "/api/status", "/api/settings"} {

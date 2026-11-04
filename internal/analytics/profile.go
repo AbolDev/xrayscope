@@ -156,10 +156,59 @@ func BridgeGaps(masks map[int64]int64, gap int) {
 	}
 }
 
+// Traffic-based bridging: a longer pause between two visits of a site still
+// counts as time on it while the user's connection kept moving data.
+const (
+	// TrafficBridgeMax is the longest pause that can be bridged this way.
+	TrafficBridgeMax = 45
+	// trafficShare is the share of the pause that must have real traffic.
+	trafficShare = 70
+)
+
+// BridgeTraffic fills pauses of up to TrafficBridgeMax minutes between two
+// active minutes when at least trafficShare percent of the pause carried
+// traffic (tr: hour -> minute mask). It is meant to run after BridgeGaps.
+func BridgeTraffic(masks map[int64]int64, tr map[int64]int64) {
+	if len(masks) == 0 || len(tr) == 0 {
+		return
+	}
+	hours := make([]int64, 0, len(masks))
+	for h := range masks {
+		hours = append(hours, h)
+	}
+	sort.Slice(hours, func(i, j int) bool { return hours[i] < hours[j] })
+	var mins []int64
+	for _, h := range hours {
+		hourMinutes(h, masks[h], func(m int64) { mins = append(mins, m) })
+	}
+	active := func(m int64) bool { return tr[m/60]&(1<<uint(m%60)) != 0 }
+	for i := 1; i < len(mins); i++ {
+		a, b := mins[i-1], mins[i]
+		gap := b - a - 1
+		if gap <= 0 || gap > TrafficBridgeMax {
+			continue
+		}
+		var n int64
+		for m := a + 1; m < b; m++ {
+			if active(m) {
+				n++
+			}
+		}
+		if n*100 >= gap*trafficShare {
+			for m := a + 1; m < b; m++ {
+				masks[m/60] |= 1 << uint(m%60)
+			}
+		}
+	}
+}
+
 // TimeSpent aggregates service time. Category totals use the union of
 // minutes across services so parallel use is not double counted. Per-user
 // results are summed when rows from several users are given.
-func TimeSpent(rows []store.SvcRow, services map[int64]store.Service) (byCategory, byService []TimeStat) {
+//
+// tact (user -> hour -> minute mask, may be nil) holds the minutes with real
+// traffic; it lets pauses longer than BridgeMinutes count while data flowed.
+func TimeSpent(rows []store.SvcRow, services map[int64]store.Service, tact map[int64]map[int64]int64) (byCategory, byService []TimeStat) {
 	byCategory, byService = []TimeStat{}, []TimeStat{}
 	type ck struct {
 		user int64
@@ -182,8 +231,9 @@ func TimeSpent(rows []store.SvcRow, services map[int64]store.Service) (byCategor
 		}
 		groups[k][r.Hour] |= r.Mask
 	}
-	for _, m := range groups {
+	for k, m := range groups {
 		BridgeGaps(m, BridgeMinutes)
+		BridgeTraffic(m, tact[k.user])
 	}
 	for _, r := range rows {
 		sv, ok := services[r.ServiceID]
@@ -227,7 +277,10 @@ type SiteStat struct {
 
 // Sites aggregates visit rows per site. Daily (compacted) rows contribute
 // hours*60 as an upper bound for minutes.
-func Sites(rows []store.VisitRow, domains map[int64]store.Domain, services map[int64]store.Service, from, to int64) []SiteStat {
+//
+// tr (hour -> minute mask, may be nil) holds the user's minutes with real
+// traffic, as for TimeSpent.
+func Sites(rows []store.VisitRow, domains map[int64]store.Domain, services map[int64]store.Service, from, to int64, tr map[int64]int64) []SiteStat {
 	acc := map[int64]*SiteStat{}
 	// bridge quiet minutes inside one visit, per site
 	bridged := map[int64]map[int64]int64{}
@@ -242,6 +295,7 @@ func Sites(rows []store.VisitRow, domains map[int64]store.Domain, services map[i
 	}
 	for _, m := range bridged {
 		BridgeGaps(m, BridgeMinutes)
+		BridgeTraffic(m, tr)
 	}
 	for _, r := range rows {
 		d, ok := domains[r.DomainID]

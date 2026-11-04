@@ -7,6 +7,45 @@ import (
 	"xrayscope/internal/store"
 )
 
+func TestMergeMinutes(t *testing.T) {
+	got := MergeMinutes([]int64{1, 3, 5}, []int64{2, 3, 6, 7})
+	want := []int64{1, 2, 3, 5, 6, 7}
+	if len(got) != len(want) {
+		t.Fatalf("got %v", got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("got %v", got)
+		}
+	}
+	if m := MaskMinutes(map[int64]int64{2: 1<<0 | 1<<5}, 120, 125); len(m) != 1 || m[0] != 120 {
+		t.Fatalf("MaskMinutes = %v", m)
+	}
+}
+
+func TestBridgeTraffic(t *testing.T) {
+	// requests at minutes 0 and 20 of one hour; the 19 minutes between have
+	// traffic in 15 of them (79 percent), so the pause counts
+	m := map[int64]int64{10: 1<<0 | 1<<20}
+	tr := map[int64]int64{10: (1<<20 - 1) &^ (1<<0 | 1<<5 | 1<<9 | 1<<13)}
+	BridgeTraffic(m, tr)
+	if got := PopCount(m[10]); got != 21 {
+		t.Fatalf("busy pause: %d minutes", got)
+	}
+	// the same pause without traffic stays empty
+	m = map[int64]int64{10: 1<<0 | 1<<20}
+	BridgeTraffic(m, map[int64]int64{10: 1 << 40})
+	if got := PopCount(m[10]); got != 2 {
+		t.Fatalf("quiet pause: %d minutes", got)
+	}
+	// and a pause longer than the limit is never bridged
+	m = map[int64]int64{10: 1 << 0, 11: 1 << 5}
+	BridgeTraffic(m, map[int64]int64{10: ^int64(1), 11: 0x1f})
+	if PopCount(m[10]) != 1 {
+		t.Fatal("a very long pause must not be bridged")
+	}
+}
+
 func TestBridgeGaps(t *testing.T) {
 	// minutes 0 and 3 of hour 10 (a gap of two), minute 58 of hour 10 and
 	// minute 1 of hour 11 (a gap of two across the hour), minute 30 alone
@@ -179,7 +218,7 @@ func TestTimeSpentUsesUnionPerCategory(t *testing.T) {
 		{Hour: 10, UserID: 1, ServiceID: 1, Mask: 0b1111, Reqs: 4},
 		{Hour: 10, UserID: 1, ServiceID: 2, Mask: 0b1100, Reqs: 2},
 	}
-	cats, svcs := TimeSpent(rows, services)
+	cats, svcs := TimeSpent(rows, services, nil)
 	if len(cats) != 1 || cats[0].Minutes != 4 || cats[0].Reqs != 6 {
 		t.Fatalf("cats = %+v", cats)
 	}
