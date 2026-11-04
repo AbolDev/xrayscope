@@ -358,8 +358,12 @@ function sleep(r) {
   for (const d of days) {
     const startSec = d.start * 60, endSec = d.end * 60;
     const noon = noonBefore(d.date);
-    const left = Math.max(0, ((startSec - noon) / 86400) * 100);
-    const width = Math.max(0.5, ((endSec - startSec) / 86400) * 100);
+    // keep the bar inside the noon-to-noon axis; a sleep that runs past noon
+    // is cut at the edge (the times beside it stay exact)
+    const a = Math.min(100, Math.max(0, ((startSec - noon) / 86400) * 100));
+    const b = Math.min(100, Math.max(0, ((endSec - noon) / 86400) * 100));
+    const left = Math.min(a, 99.5);
+    const width = Math.max(0.5, b - left);
     card.append(h('div', { class: 'sleep-row' },
       h('div', { class: 'd' }, fmtDateStr(d.date, { month: 'short', day: 'numeric', weekday: 'short' })),
       h('div', { class: 'sleep-track' },
@@ -369,7 +373,7 @@ function sleep(r) {
         h('span', { dir: 'ltr', style: { unicodeBidi: 'isolate' } }, `${fmtTime(startSec)} - ${fmtTime(endSec)}`), '  ', dur(d.minutes))));
   }
   card.append(h('div', { class: 'legend' },
-    h('span', null, h('i', { class: 'swatch', style: { background: 'var(--warn)' } }), t('sl.kind.connected')),
+    h('span', null, h('i', { class: 'swatch', style: { background: 'var(--n1)' } }), t('sl.kind.connected')),
     h('span', null, h('i', { class: 'swatch', style: { background: 'var(--accent)' } }), t('sl.kind.offline')),
     h('span', null, h('i', { class: 'swatch', style: { background: 'var(--accent)', opacity: 0.45 } }), t('sl.kind.atypical'))));
   page.append(panel(t('sl.nightly'), card, t('sl.nightly_hint')));

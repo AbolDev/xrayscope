@@ -348,14 +348,15 @@ table.tbl { width: 100%; border-collapse: collapse; }
 .gantt .g-track { position: relative; height: 16px; background: var(--n4); border-radius: 4px; }
 .gantt .g-bar { position: absolute; top: 2px; bottom: 2px; border-radius: 2px; min-width: 3px; }
 
-.sleep-row { display: grid; grid-template-columns: 104px minmax(0, 1fr) 152px; gap: var(--s3); align-items: center; margin-bottom: var(--s1); direction: ltr; }
+.sleep-row { display: grid; grid-template-columns: 104px minmax(0, 1fr) 168px; gap: var(--s3); align-items: center; margin-bottom: var(--s1); direction: ltr; }
 .sleep-row .d { font-size: var(--t-xs); color: var(--ink-2); text-align: end; }
-.sleep-track { position: relative; height: 16px; border-radius: 4px; background: var(--n4); }
+.sleep-row > :last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sleep-track { position: relative; height: 16px; border-radius: 4px; background: var(--n4); overflow: hidden; }
 .sleep-track .night { position: absolute; top: 0; bottom: 0; background: var(--rule); }
 .sleep-track .sl { position: absolute; top: 2px; bottom: 2px; border-radius: 2px; background: var(--accent); }
 .sleep-track .sl.connected { background: var(--n1); }
 .sleep-track .sl.atyp { opacity: .45; }
-.sleep-axis { display: grid; grid-template-columns: 104px minmax(0, 1fr) 152px; gap: var(--s3); direction: ltr; font-size: var(--t-xs); font-family: var(--mono); color: var(--ink-3); margin-bottom: var(--s1); }
+.sleep-axis { display: grid; grid-template-columns: 104px minmax(0, 1fr) 168px; gap: var(--s3); direction: ltr; font-size: var(--t-xs); font-family: var(--mono); color: var(--ink-3); margin-bottom: var(--s1); }
 .sleep-axis .ticks { position: relative; height: 16px; }
 .sleep-axis .ticks span { position: absolute; transform: translateX(-50%); }
 

@@ -78,7 +78,7 @@ const en = {
   // sleep
   'sl.bedtime': 'Typical bedtime', 'sl.wake': 'Typical wake-up', 'sl.duration': 'Average sleep', 'sl.confidence': 'Confidence',
   'sl.std': '± {m} min variation', 'sl.nights': '{n} nights analysed', 'sl.window': 'last {n} days', 'sl.connected_share': '{p}% of nights stayed connected',
-  'sl.explain': 'Sleep is estimated as the longest quiet stretch with no interactive traffic around night time. Background traffic (updates, sync, push) is ignored, so a phone that keeps the VPN on while its owner sleeps is still detected — those nights are shown in amber.',
+  'sl.explain': 'Sleep is estimated as the longest quiet stretch with no interactive traffic around night time. Background traffic (updates, sync, push) is ignored, so a phone that keeps the VPN on while its owner sleeps is still detected — those nights are shown in gray.',
   'sl.method': 'The estimate needs at least a few days of regular interactive use.', 'sl.not_enough': 'Not enough data yet: the sleep pattern needs several days of regular use (looked at the last {n} days).',
   'sl.nightly': 'Night by night', 'sl.nightly_hint': 'axis runs from noon to noon', 'sl.table': 'Details',
   'sl.kind': 'Connection', 'sl.kind.connected': 'Connected while inactive', 'sl.kind.offline': 'No traffic at all', 'sl.kind.atypical': 'unusual time',
@@ -263,7 +263,7 @@ const fa = {
 
   'sl.bedtime': 'ساعت معمول خواب', 'sl.wake': 'ساعت معمول بیداری', 'sl.duration': 'میانگین خواب', 'sl.confidence': 'اطمینان',
   'sl.std': '± {m} دقیقه تغییرپذیری', 'sl.nights': '{n} شب بررسی شد', 'sl.window': '{n} روز اخیر', 'sl.connected_share': '{p}٪ از شب‌ها متصل ماند',
-  'sl.explain': 'خواب به‌صورت طولانی‌ترین بازه‌ی بی‌فعالیتِ شبانه (بدون ترافیک تعاملی) تخمین زده می‌شود. ترافیک پس‌زمینه (به‌روزرسانی، همگام‌سازی، نوتیفیکیشن) نادیده گرفته می‌شود؛ بنابراین گوشی‌ای که هنگام خواب صاحبش هم به VPN وصل مانده تشخیص داده می‌شود و آن شب‌ها به رنگ زرد نمایش داده می‌شوند.',
+  'sl.explain': 'خواب به‌صورت طولانی‌ترین بازه‌ی بی‌فعالیتِ شبانه (بدون ترافیک تعاملی) تخمین زده می‌شود. ترافیک پس‌زمینه (به‌روزرسانی، همگام‌سازی، نوتیفیکیشن) نادیده گرفته می‌شود؛ بنابراین گوشی‌ای که هنگام خواب صاحبش هم به VPN وصل مانده تشخیص داده می‌شود و آن شب‌ها به رنگ خاکستری نمایش داده می‌شوند.',
   'sl.method': 'برای تخمین، چند روز استفاده‌ی منظم لازم است.', 'sl.not_enough': 'هنوز داده‌ی کافی نیست: الگوی خواب به چند روز استفاده‌ی منظم نیاز دارد ({n} روز اخیر بررسی شد).',
   'sl.nightly': 'شب به شب', 'sl.nightly_hint': 'محور از ظهر تا ظهر است', 'sl.table': 'جزئیات',
   'sl.kind': 'اتصال', 'sl.kind.connected': 'هنگام بی‌فعالیتی متصل بود', 'sl.kind.offline': 'هیچ ترافیکی نبود', 'sl.kind.atypical': 'زمان غیرمعمول',
